@@ -1,0 +1,53 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // == Helper Functions ==
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email.matches('.*admin.*') ||
+        request.auth.token.email == 'adminsidaurip@gmail.id' ||
+        get(/databases/$(database)/documents/personel/$(request.auth.uid)).data.role in ['admin', 'admin_absensi']
+      );
+    }
+
+    // == Rules: Personel ==
+    match /personel/{userId} {
+      // IZINKAN BACA PUBLIK UNTUK INTERNAL APP
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    // == Rules: Absensi ==
+    match /absensi/{absenId} {
+      // Izinkan akses bebas jika sudah login (Internal Only)
+      allow read, write: if isSignedIn();
+    }
+
+    // == Rules: Settings ==
+    match /absensi_settings/{settingId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // == Rules: Database Master Lainnya ==
+    match /personnel/{docId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    match /siltap/{docId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+    match /bpd_insentif/{docId} { allow read: if isSignedIn(); allow write: if isAdmin(); }
+
+    // == Rules: User Specific Reports ==
+    match /users/{userId} {
+      allow read, write: if isSignedIn();
+      
+      match /{allSubcollections=**} {
+        allow read, write: if isSignedIn();
+      }
+    }
+  }
+}

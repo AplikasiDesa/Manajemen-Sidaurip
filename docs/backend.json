@@ -1,0 +1,188 @@
+
+{
+  "entities": {
+    "Kegiatan": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Kegiatan",
+      "type": "object",
+      "description": "Represents a work activity record uploaded by a user.",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "location": { "type": "string" },
+        "category": { "type": "string" },
+        "date": { "type": "string" },
+        "uploadDate": { "type": "string", "format": "date-time" },
+        "driveFolderId": { "type": "string" },
+        "imageUrls": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["id", "userId", "title", "description", "uploadDate"]
+    },
+    "Sppd": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Sppd",
+      "type": "object",
+      "description": "Represents an official travel expense report (SPPD) uploaded by a user.",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "documentNumber": { "type": "string" },
+        "destination": { "type": "string" },
+        "startDate": { "type": "string" },
+        "endDate": { "type": "string" },
+        "expenseDate": { "type": "string", "format": "date-time" },
+        "amount": { "type": "number" },
+        "description": { "type": "string" },
+        "approvalStatus": { "type": "string" },
+        "companions": { "type": "string" }
+      },
+      "required": ["id", "userId", "destination", "amount", "approvalStatus"]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the application.",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "logoBase64": { "type": "string" },
+        "heroPhotoBase64": { "type": "string" },
+        "role": { "type": "string", "enum": ["citizen", "admin", "perangkat", "admin_absensi"] },
+        "kegiatanFolderId": { "type": "string" },
+        "spjFolderId": { "type": "string" },
+        "produkHukumFolderId": { "type": "string" }
+      },
+      "required": ["id", "name", "email", "role"]
+    },
+    "Personel": {
+      "title": "Personel",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "nama": { "type": "string" },
+        "username": { "type": "string" },
+        "email": { "type": "string" },
+        "password": { "type": "string" },
+        "role": { "type": "string" },
+        "aktif": { "type": "boolean" },
+        "created_at": { "type": "string" }
+      }
+    },
+    "PersonnelMaster": {
+      "title": "PersonnelMaster",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "jabatan": { "type": "string" },
+        "category": { "type": "string" },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      }
+    },
+    "Siltap": {
+      "title": "Siltap",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "jabatan": { "type": "string" },
+        "nominal": { "type": "number" },
+        "createdAt": { "type": "string" }
+      }
+    },
+    "Absensi": {
+      "title": "Absensi",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "personel_id": { "type": "string" },
+        "tanggal": { "type": "string" },
+        "jam_masuk": { "type": "string" },
+        "jam_pulang": { "type": "string" },
+        "status": { "type": "string", "enum": ["hadir", "telat", "izin", "alpha", "dinas_luar"] },
+        "lokasi_masuk": { "type": "object", "properties": { "lat": { "type": "number" }, "lng": { "type": "number" } } },
+        "lokasi_pulang": { "type": "object", "properties": { "lat": { "type": "number" }, "lng": { "type": "number" } } },
+        "created_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "AbsensiSettings": {
+      "title": "AbsensiSettings",
+      "type": "object",
+      "properties": {
+        "jam_masuk": { "type": "string" },
+        "jam_pulang": { "type": "string" },
+        "toleransi_telat": { "type": "number" },
+        "hari_kerja": { "type": "array", "items": { "type": "string" } },
+        "hari_libur": { "type": "array", "items": { "type": "string" } },
+        "radius_lokasi": { "type": "number" },
+        "lokasi_kantor": { "type": "object", "properties": { "lat": { "type": "number" }, "lng": { "type": "number" } } }
+      }
+    }
+  },
+  "auth": {
+    "providers": ["password"]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": { "$ref": "#/backend/entities/User" },
+          "description": "User profiles and settings."
+        }
+      },
+      {
+        "path": "/personel/{personelId}",
+        "definition": {
+          "entityName": "Personel",
+          "schema": { "$ref": "#/backend/entities/Personel" },
+          "description": "Personnel profiles for attendance and account linking."
+        }
+      },
+      {
+        "path": "/personnel/{docId}",
+        "definition": {
+          "entityName": "PersonnelMaster",
+          "schema": { "$ref": "#/backend/entities/PersonnelMaster" },
+          "description": "Master list of village personnel for dropdowns and document printing."
+        }
+      },
+      {
+        "path": "/siltap/{docId}",
+        "definition": {
+          "entityName": "Siltap",
+          "schema": { "$ref": "#/backend/entities/Siltap" },
+          "description": "Salary and allowance data (Siltap)."
+        }
+      },
+      {
+        "path": "/bpd_insentif/{docId}",
+        "definition": {
+          "entityName": "Siltap",
+          "schema": { "$ref": "#/backend/entities/Siltap" },
+          "description": "BPD incentive data."
+        }
+      },
+      {
+        "path": "/absensi/{absensiId}",
+        "definition": {
+          "entityName": "Absensi",
+          "schema": { "$ref": "#/backend/entities/Absensi" },
+          "description": "Attendance records."
+        }
+      },
+      {
+        "path": "/absensi_settings/global",
+        "definition": {
+          "entityName": "AbsensiSettings",
+          "schema": { "$ref": "#/backend/entities/AbsensiSettings" },
+          "description": "Global attendance configuration."
+        }
+      }
+    ]
+  }
+}
