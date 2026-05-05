@@ -207,9 +207,9 @@ function DokumenContent() {
         };
         
         if (type === "daftar-hadir") {
-          pdfBlob = await generateDaftarHadirPDF(fixedPdfData, userData?.logoBase64);
+          pdfBlob = await generateDaftarHadirPDF(pdfData as any, userData?.logoBase64);
         } else {
-          pdfBlob = await generateUangSakuPDF(pdfData, userData?.logoBase64);
+          pdfBlob = await generateUangSakuPDF(pdfData as any, userData?.logoBase64);
         }
       } 
       else if (type === "honor-narasumber") {
