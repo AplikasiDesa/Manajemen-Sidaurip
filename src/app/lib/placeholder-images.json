@@ -2,22 +2,28 @@
 {
   "placeholderImages": [
     {
-      "id": "kegiatan-1",
-      "description": "Meeting documentation",
-      "imageUrl": "https://picsum.photos/seed/kegiatan1/600/400",
-      "imageHint": "meeting office"
+      "id": "1",
+      "description": "Abstract Minimalist Design",
+      "imageUrl": "https://picsum.photos/seed/canvas1/800/600",
+      "imageHint": "abstract minimalist"
     },
     {
-      "id": "kegiatan-2",
-      "description": "Field work report",
-      "imageUrl": "https://picsum.photos/seed/kegiatan2/600/400",
-      "imageHint": "field work"
+      "id": "2",
+      "description": "Modern Workspace",
+      "imageUrl": "https://picsum.photos/seed/canvas2/800/600",
+      "imageHint": "modern workspace"
     },
     {
-      "id": "sppd-1",
-      "description": "Travel ticket",
-      "imageUrl": "https://picsum.photos/seed/sppd1/600/400",
-      "imageHint": "ticket travel"
+      "id": "3",
+      "description": "Creative Background",
+      "imageUrl": "https://picsum.photos/seed/canvas3/800/600",
+      "imageHint": "creative background"
+    },
+    {
+      "id": "4",
+      "description": "Tech Innovation",
+      "imageUrl": "https://picsum.photos/seed/canvas4/800/600",
+      "imageHint": "tech innovation"
     }
   ]
 }

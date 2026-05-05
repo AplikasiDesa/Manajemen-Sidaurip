@@ -4,78 +4,69 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
+    /* Teras Desa Nusantara - Warm Green Theme */
+     --background: 210 20% 97%; /* Krem Lembut */
+    --foreground: 222 47% 11%; /* Hijau Sangat Tua untuk teks */
+    
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 120 40% 10%;
+    
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 16 100% 50%; /* Vibrant Orange from image */
+    --popover-foreground: 120 40% 10%;
+    
+    --primary: 230 60% 10%; /* Hijau Daun Tua */
     --primary-foreground: 0 0% 100%;
-    --secondary: 16 20% 96%;
-    --secondary-foreground: 16 100% 15%;
-    --muted: 16 20% 96%;
-    --muted-foreground: 16 10% 40%;
-    --accent: 16 100% 50%; /* Vibrant Orange from image */
+    
+    --secondary: 200 70% 65%; /* Kuning Padi */
+    --secondary-foreground: 222 47% 11%;
+    
+    --muted: 120 10% 90%;
+    --muted-foreground: 120 10% 40%;
+    
+    --accent: 200 70% 65%; /* Coklat Kayu */
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 84% 60%;
+    
+    --destructive: 0 70% 55%; /* Merah Bata */
     --destructive-foreground: 0 0% 98%;
-    --border: 16 20% 90%;
-    --input: 16 20% 90%;
-    --ring: 16 100% 50%;
+    
+    --border: 210 20% 88%;
+    --input: 120 15% 85%;
+    --ring: 120 35% 25%;
+    
     --radius: 1rem;
-  }
 
-  .dark {
-    --background: 16 15% 5%;
-    --foreground: 16 10% 80%;
-    --card: 16 15% 8%;
-    --card-foreground: 16 10% 80%;
-    --popover: 16 15% 5%;
-    --popover-foreground: 16 10% 80%;
-    --primary: 16 90% 60%;
-    --primary-foreground: 16 100% 10%;
-    --secondary: 16 20% 15%;
-    --secondary-foreground: 16 10% 80%;
-    --muted: 16 20% 12%;
-    --muted-foreground: 16 10% 60%;
-    --accent: 16 90% 60%;
-    --accent-foreground: 16 100% 10%;
-    --destructive: 0 62% 50%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 16 15% 20%;
-    --input: 16 15% 20%;
-    --ring: 16 90% 60%;
+    /* Sidebar Theme */
+    --sidebar-background: 230 60% 10%; /* Hijau Lebih Tua */
+    --sidebar-foreground: 120 10% 90%;
+    --sidebar-primary: 200 70% 65%;
+    --sidebar-primary-foreground: 120 35% 10%;
+    --sidebar-accent: 120 30% 18%;
+    --sidebar-accent-foreground: 200 70% 65%;
+    --sidebar-border: 120 30% 18%;
+    --sidebar-ring: 200 70% 65%;
   }
 }
 
 @layer base {
   * {
     @apply border-border;
-    -webkit-tap-highlight-color: transparent;
   }
   body {
-    @apply bg-background text-foreground font-body overflow-x-hidden;
-    overscroll-behavior-y: none;
+    @apply bg-background text-foreground antialiased font-sans;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display tracking-tight;
   }
 }
 
-/* Custom Scrollbar for better UI on mobile */
-::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-}
-::-webkit-scrollbar-track {
-  @apply bg-transparent;
-}
-::-webkit-scrollbar-thumb {
-  @apply bg-muted-foreground/20 rounded-full;
+.warm-gradient {
+  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
 }
 
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
+.soft-shadow {
+  box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.03), 0 4px 6px -2px rgba(0, 0, 0, 0.01);
 }
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+
+.glass-card {
+  @apply bg-white/80 backdrop-blur-md border border-white/20;
 }

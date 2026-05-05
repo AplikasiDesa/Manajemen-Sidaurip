@@ -1,3 +1,10 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "login-hero",
+      "description": "A lush green rice paddy field in a village, representing community and nature.",
+      "imageUrl": "https://images.unsplash.com/photo-1602989106211-81de671c23a9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxyaWNlJTIwZmllbGR8ZW58MHx8fHwxNzcxMDcxNDI3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "rice field"
+    }
+  ]
 }

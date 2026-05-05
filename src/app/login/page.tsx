@@ -1,182 +1,135 @@
-
-"use client"
-
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
-import { useAuth, useUser, useFirestore } from "@/firebase"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Home, LogIn, Loader2, KeyRound, Mail, AlertCircle, ArrowLeft } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import * as z from "zod"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth"
-import { doc, setDoc } from "firebase/firestore"
-import Link from "next/link"
-
-const loginSchema = z.object({
-  email: z.string().email("Format email tidak valid."),
-  password: z.string().min(6, "Password minimal 6 karakter."),
-})
+'use client';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
+import Image from 'next/image';
+import Link from 'next/link';
+import { Logo } from '@/components/logo';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { doc } from 'firebase/firestore';
 
 export default function LoginPage() {
-  const { user, isUserLoading } = useUser()
-  const auth = useAuth()
-  const db = useFirestore()
-  const router = useRouter()
-  const { toast } = useToast()
-  const [isProcessing, setIsProcessing] = useState(false)
+  const router = useRouter();
+  const { toast } = useToast();
+  const auth = useAuth();
+  const firestore = useFirestore();
 
-  // Redirect jika sudah login
-  useEffect(() => {
-    if (user && !isUserLoading) {
-      router.push("/dashboard/");
+  const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  // Ambil Gambar Hero secara dinamis dari Firestore
+  const heroRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'heroImage', 'default');
+  }, [firestore]);
+  
+  const { data: heroData } = useDoc<{ imageUrl: string }>(heroRef);
+  const heroImageUrl = heroData?.imageUrl || "https://images.unsplash.com/photo-1602989106211-81de671c23a9?q=80&w=2000";
+
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+  
+    if (!auth) {
+      toast({ title: 'Auth tidak tersedia', variant: 'destructive' });
+      setIsLoading(false);
+      return;
     }
-  }, [user, isUserLoading, router])
-
-  const form = useForm<z.infer<typeof loginSchema>>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-  })
-
-  async function onSubmit(values: z.infer<typeof loginSchema>) {
-    setIsProcessing(true)
+  
     try {
-      // Mencoba login
-      await signInWithEmailAndPassword(auth, values.email, values.password)
-      toast({
-        title: "Login Berhasil",
-        description: "Selamat datang kembali.",
-      })
-      router.push("/dashboard/")
-    } catch (error: any) {
-      // Auto-registration jika user tidak ditemukan atau kredensial salah (untuk akses bebas)
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
-        try {
-          const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password)
-          const newUser = userCredential.user
-
-          await setDoc(doc(db, "users", newUser.uid), {
-            id: newUser.uid,
-            email: newUser.email,
-            name: newUser.email?.split('@')[0] || "Pengguna",
-            role: "perangkat", 
-            createdAt: new Date().toISOString()
-          }, { merge: true })
-
-          toast({
-            title: "Akses Diberikan",
-            description: "Akun Anda telah disiapkan secara otomatis.",
-          })
-          router.push("/dashboard/")
-        } catch (createError: any) {
-          toast({
-            variant: "destructive",
-            title: "Gagal Mengakses",
-            description: "Pastikan format email benar dan password minimal 6 karakter.",
-          })
-        }
+      await signInWithEmailAndPassword(auth, email, password);
+  
+      // MEKANISME FLAG ADMIN INSTAN: Otoritas ditanamkan di sistem lokal
+      // Email target: sidaurip@gmail.id
+      if (email.toLowerCase() === 'sidaurip@gmail.id') {
+        localStorage.setItem('isAdmin', 'true');
+        toast({ title: 'Login Berhasil', description: 'Selamat datang, Admin!' });
+        
+        // Hard redirect untuk menjamin perpindahan halaman tanpa loop
+        window.location.href = '/admin/surat';
       } else {
-        toast({
-          variant: "destructive",
-          title: "Login Error",
-          description: "Terjadi kendala koneksi. Silakan coba lagi.",
-        })
+        localStorage.removeItem('isAdmin');
+        toast({ title: 'Akses Ditolak', description: 'Anda login sebagai warga umum.', variant: 'destructive' });
+        router.replace('/dashboard');
       }
+    
+    } catch (error) {
+      toast({ title: 'Login Gagal', description: "Email atau password salah.", variant: 'destructive' });
     } finally {
-      setIsProcessing(false)
+      setIsLoading(false);
     }
-  }
-
-  if (isUserLoading || (user && !isProcessing)) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      </div>
-    )
-  }
+  };
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4 bg-primary/5">
-      <Card className="w-full max-w-md shadow-2xl border-none rounded-[2.5rem] overflow-hidden bg-card">
-        <CardHeader className="text-center space-y-4 pb-4 pt-12 relative">
-          <Button variant="ghost" size="icon" asChild className="absolute left-6 top-6 rounded-full">
-            <Link href="/"><ArrowLeft className="h-5 w-5" /></Link>
-          </Button>
-          <div className="mx-auto h-20 w-20 rounded-[2rem] bg-primary flex items-center justify-center shadow-2xl shadow-primary/30">
-            <Home className="text-primary-foreground h-10 w-10" />
-          </div>
-          <div className="space-y-1">
-            <CardTitle className="text-2xl font-black tracking-tighter uppercase text-primary">MASUK SISTEM</CardTitle>
-            <CardDescription className="font-bold text-[10px] uppercase tracking-widest opacity-60">Gunakan Akun Perangkat Desa Anda</CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent className="p-8 sm:p-10 space-y-6">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Email</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="email@desa.id" {...field} className="h-12 rounded-xl pl-10 text-sm border-primary/10 bg-muted/30" />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs font-bold uppercase text-muted-foreground">Kata Sandi</FormLabel>
-                    <FormControl>
-                       <div className="relative">
-                        <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input type="password" placeholder="******" {...field} className="h-12 rounded-xl pl-10 text-sm border-primary/10 bg-muted/30" />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button 
-                type="submit"
-                className="w-full h-14 text-base font-black uppercase gap-4 shadow-lg active:scale-95 transition-all rounded-2xl bg-primary hover:bg-primary/90 mt-4" 
-                disabled={isProcessing}
-              >
-                {isProcessing ? (
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                ) : (
-                  <>
-                    <LogIn className="h-5 w-5" />
-                    Masuk Sekarang
-                  </>
-                )}
-              </Button>
-            </form>
-          </Form>
-
-          <div className="p-4 bg-muted/50 rounded-xl flex items-start gap-3 border border-dashed border-primary/20">
-            <AlertCircle className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-            <p className="text-[10px] text-muted-foreground leading-relaxed font-bold uppercase">
-              Akses terbuka untuk semua perangkat. Jika belum terdaftar, sistem akan membuatkan akses otomatis.
+    <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 bg-background font-sans">
+      <div className="flex items-center justify-center py-12 px-4">
+        <div className="mx-auto grid w-full max-w-[350px] gap-8">
+          <div className="grid gap-2 text-center">
+            <div className="flex justify-center mb-4">
+              <Logo />
+            </div>
+            <h1 className="text-4xl font-semibold font-display text-primary uppercase">Admin Portal</h1>
+            <p className="text-slate-500 font-medium">
+              Sistem Pengelolaan Digital Desa Sidaurip.
             </p>
           </div>
-        </CardContent>
-      </Card>
+          
+          <form onSubmit={handleEmailLogin} className="grid gap-6">
+            <div className="grid gap-2">
+              <Label htmlFor="email" className="font-bold text-xs uppercase tracking-widest text-slate-400">Email Administrator</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="admin@sidaurip.desa"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={isLoading}
+                className="h-12 rounded-xl border-slate-200 focus:ring-primary"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="password" className="font-bold text-xs uppercase tracking-widest text-slate-400">Kata Sandi</Label>
+              <Input 
+                id="password" 
+                type="password" 
+                required 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
+                className="h-12 rounded-xl border-slate-200 focus:ring-primary"
+              />
+            </div>
+            <Button type="submit" className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 font-black text-white shadow-xl shadow-primary/20" disabled={isLoading}>
+                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'MASUK KE SISTEM'}
+            </Button>
+          </form>
+          <div className="text-center text-sm font-bold">
+            <Link href="/dashboard" className="text-primary hover:underline">
+              ← Kembali ke Portal Publik
+            </Link>
+          </div>
+        </div>
+      </div>
+      <div className="hidden bg-primary lg:block relative overflow-hidden">
+        <Image
+          src={heroImageUrl}
+          alt="Desa Sidaurip"
+          fill
+          className="object-cover opacity-60 grayscale-[50%] hover:grayscale-0 transition-all duration-1000"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-primary via-transparent to-transparent" />
+        <div className="absolute bottom-12 left-12 right-12 text-white">
+            <h2 className="text-5xl font-semibold font-display leading-tight italic">Melayani dengan Inovasi, Membangun dari Hati.</h2>
+            <p className="mt-4 font-black uppercase tracking-[0.4em] text-white/50 text-xs">Pemerintah Desa Sidaurip</p>
+        </div>
+      </div>
     </div>
-  )
+  );
 }

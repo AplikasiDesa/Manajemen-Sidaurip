@@ -1,4 +1,6 @@
-/**
- * @fileOverview File ini dikosongkan untuk mendukung arsitektur Static Frontend.
- */
-export {};
+import { config } from 'dotenv';
+config();
+
+import '@/ai/flows/summarize-complaint-feedback-flow.ts';
+import '@/ai/flows/summarize-village-document-flow.ts';
+import '@/ai/flows/generate-document-number-flow.ts';

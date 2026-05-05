@@ -1,187 +1,209 @@
 
 {
   "entities": {
-    "Kegiatan": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Kegiatan",
+    "Official": {
+      "title": "Official",
       "type": "object",
-      "description": "Represents a work activity record uploaded by a user.",
+      "description": "Data pengurus desa (Perangkat, BPD, RT/RW).",
       "properties": {
-        "id": { "type": "string" },
-        "userId": { "type": "string" },
-        "title": { "type": "string" },
-        "description": { "type": "string" },
-        "location": { "type": "string" },
-        "category": { "type": "string" },
-        "date": { "type": "string" },
-        "uploadDate": { "type": "string", "format": "date-time" },
-        "driveFolderId": { "type": "string" },
-        "imageUrls": { "type": "array", "items": { "type": "string" } }
-      },
-      "required": ["id", "userId", "title", "description", "uploadDate"]
-    },
-    "Sppd": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Sppd",
-      "type": "object",
-      "description": "Represents an official travel expense report (SPPD) uploaded by a user.",
-      "properties": {
-        "id": { "type": "string" },
-        "userId": { "type": "string" },
-        "documentNumber": { "type": "string" },
-        "destination": { "type": "string" },
-        "startDate": { "type": "string" },
-        "endDate": { "type": "string" },
-        "expenseDate": { "type": "string", "format": "date-time" },
-        "amount": { "type": "number" },
-        "description": { "type": "string" },
-        "approvalStatus": { "type": "string" },
-        "companions": { "type": "string" }
-      },
-      "required": ["id", "userId", "destination", "amount", "approvalStatus"]
-    },
-    "User": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "User",
-      "type": "object",
-      "description": "Represents a user of the application.",
-      "properties": {
-        "id": { "type": "string" },
         "name": { "type": "string" },
-        "email": { "type": "string", "format": "email" },
-        "logoBase64": { "type": "string" },
-        "heroPhotoBase64": { "type": "string" },
-        "role": { "type": "string", "enum": ["citizen", "admin", "perangkat", "admin_absensi"] },
-        "kegiatanFolderId": { "type": "string" },
-        "spjFolderId": { "type": "string" },
-        "produkHukumFolderId": { "type": "string" }
+        "position": { "type": "string" },
+        "category": { "type": "string", "enum": ["perangkat", "bpd", "rtrw"] },
+        "imageUrl": { "type": "string", "description": "URL foto profil dari Cloudinary" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "name", "email", "role"]
+      "required": ["name", "position", "category"]
     },
-    "Personel": {
-      "title": "Personel",
+    "Counter": {
+      "title": "Counter",
+      "description": "A generic counter document for sequential numbering.",
+      "type": "object",
+      "properties": {
+        "value": { "type": "number" }
+      },
+      "required": ["value"]
+    },
+    "KopSurat": {
+      "title": "KopSurat",
+      "type": "object",
+      "properties": {
+        "letterheadImageUrl": { "type": "string" }
+      },
+      "required": ["letterheadImageUrl"]
+    },
+    "VillageLogo": {
+      "title": "VillageLogo",
+      "type": "object",
+      "properties": {
+        "logoImageUrl": { "type": "string" }
+      },
+      "required": ["logoImageUrl"]
+    },
+    "HeroImage": {
+      "title": "HeroImage",
+      "type": "object",
+      "properties": {
+        "imageUrl": { "type": "string" }
+      },
+      "required": ["imageUrl"]
+    },
+    "News": {
+      "title": "News",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "content": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "date": { "type": "string" },
+        "author": { "type": "string" },
+        "isHeadline": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "content", "imageUrl", "date", "author"]
+    },
+    "Resident": {
+      "title": "Resident",
+      "type": "object",
+      "properties": {
+        "nik": { "type": "string" },
+        "noKk": { "type": "string" },
+        "fullName": { "type": "string" },
+        "gender": { "type": "string" },
+        "dateOfBirth": { "type": "string" },
+        "age": { "type": "string" },
+        "placeOfBirth": { "type": "string" },
+        "address": { "type": "string" },
+        "rt": { "type": "string" },
+        "rw": { "type": "string" },
+        "kelurahan": { "type": "string" },
+        "relationshipToHeadOfFamily": { "type": "string" },
+        "maritalStatus": { "type": "string" },
+        "educationLevel": { "type": "string" },
+        "religion": { "type": "string" },
+        "occupation": { "type": "string" },
+        "bloodType": { "type": "string" },
+        "hasBirthCertificate": { "type": "string" },
+        "birthCertificateNumber": { "type": "string" },
+        "hasMarriageCertificate": { "type": "string" },
+        "marriageCertificateNumber": { "type": "string" },
+        "hasDivorceCertificate": { "type": "string" },
+        "divorceCertificateNumber": { "type": "string" },
+        "fatherName": { "type": "string" },
+        "motherName": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "CitizenProfile": {
+      "title": "CitizenProfile",
       "type": "object",
       "properties": {
         "uid": { "type": "string" },
-        "nama": { "type": "string" },
-        "username": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Complaint": {
+      "title": "Complaint",
+      "type": "object",
+      "properties": {
+        "description": { "type": "string" },
+        "reporterName": { "type": "string" },
+        "reporterAddress": { "type": "string" },
+        "phoneNumber": { "type": "string" },
         "email": { "type": "string" },
-        "password": { "type": "string" },
-        "role": { "type": "string" },
-        "aktif": { "type": "boolean" },
-        "created_at": { "type": "string" }
+        "summaryLLM": { "type": "string" },
+        "sentiment": { "type": "string", "enum": ["positive", "neutral", "negative"] },
+        "keywords": { "type": "array", "items": { "type": "string" } },
+        "submitterAuthUid": { "type": "string" },
+        "adminResponse": { "type": "string" },
+        "status": { "type": "string" },
+        "submissionDate": { "type": "string", "format": "date-time" }
       }
     },
-    "PersonnelMaster": {
-      "title": "PersonnelMaster",
+    "LetterRequest": {
+      "title": "LetterRequest",
       "type": "object",
       "properties": {
-        "name": { "type": "string" },
-        "jabatan": { "type": "string" },
-        "category": { "type": "string" },
-        "active": { "type": "boolean" },
-        "createdAt": { "type": "string" }
+        "requesterName": { "type": "string" },
+        "nik": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "email": { "type": "string" },
+        "letterType": { "type": "string" },
+        "status": { "type": "string" },
+        "submissionData": { "type": "string" },
+        "documentNumber": { "type": "string" },
+        "requestorAuthUid": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
       }
     },
-    "Siltap": {
-      "title": "Siltap",
+    "Announcement": {
+      "title": "Announcement",
       "type": "object",
       "properties": {
-        "name": { "type": "string" },
-        "jabatan": { "type": "string" },
-        "nominal": { "type": "number" },
-        "createdAt": { "type": "string" }
-      }
-    },
-    "Absensi": {
-      "title": "Absensi",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "personel_id": { "type": "string" },
-        "tanggal": { "type": "string" },
-        "jam_masuk": { "type": "string" },
-        "jam_pulang": { "type": "string" },
-        "status": { "type": "string", "enum": ["hadir", "telat", "izin", "alpha", "dinas_luar"] },
-        "lokasi_masuk": { "type": "object", "properties": { "lat": { "type": "number" }, "lng": { "type": "number" } } },
-        "lokasi_pulang": { "type": "object", "properties": { "lat": { "type": "number" }, "lng": { "type": "number" } } },
-        "created_at": { "type": "string", "format": "date-time" }
-      }
-    },
-    "AbsensiSettings": {
-      "title": "AbsensiSettings",
-      "type": "object",
-      "properties": {
-        "jam_masuk": { "type": "string" },
-        "jam_pulang": { "type": "string" },
-        "toleransi_telat": { "type": "number" },
-        "hari_kerja": { "type": "array", "items": { "type": "string" } },
-        "hari_libur": { "type": "array", "items": { "type": "string" } },
-        "radius_lokasi": { "type": "number" },
-        "lokasi_kantor": { "type": "object", "properties": { "lat": { "type": "number" }, "lng": { "type": "number" } } }
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "authorName": { "type": "string" },
+        "publishDate": { "type": "string", "format": "date-time" }
       }
     }
   },
   "auth": {
-    "providers": ["password"]
+    "providers": ["password", "anonymous"]
   },
   "firestore": {
     "structure": [
       {
-        "path": "/users/{userId}",
+        "path": "/officials/{officialId}",
         "definition": {
-          "entityName": "User",
-          "schema": { "$ref": "#/backend/entities/User" },
-          "description": "User profiles and settings."
+          "entityName": "Official",
+          "schema": { "$ref": "#/backend/entities/Official" },
+          "description": "Daftar pengurus pemerintahan desa."
         }
       },
       {
-        "path": "/personel/{personelId}",
-        "definition": {
-          "entityName": "Personel",
-          "schema": { "$ref": "#/backend/entities/Personel" },
-          "description": "Personnel profiles for attendance and account linking."
-        }
+        "path": "/news/{newsId}",
+        "definition": { "entityName": "News", "schema": { "$ref": "#/backend/entities/News" } }
       },
       {
-        "path": "/personnel/{docId}",
-        "definition": {
-          "entityName": "PersonnelMaster",
-          "schema": { "$ref": "#/backend/entities/PersonnelMaster" },
-          "description": "Master list of village personnel for dropdowns and document printing."
-        }
+        "path": "/counters/{counterId}",
+        "definition": { "entityName": "Counter", "schema": { "$ref": "#/backend/entities/Counter" } }
       },
       {
-        "path": "/siltap/{docId}",
-        "definition": {
-          "entityName": "Siltap",
-          "schema": { "$ref": "#/backend/entities/Siltap" },
-          "description": "Salary and allowance data (Siltap)."
-        }
+        "path": "/kopSurat/{settingId}",
+        "definition": { "entityName": "KopSurat", "schema": { "$ref": "#/backend/entities/KopSurat" } }
       },
       {
-        "path": "/bpd_insentif/{docId}",
-        "definition": {
-          "entityName": "Siltap",
-          "schema": { "$ref": "#/backend/entities/Siltap" },
-          "description": "BPD incentive data."
-        }
+        "path": "/villageLogo/{logoId}",
+        "definition": { "entityName": "VillageLogo", "schema": { "$ref": "#/backend/entities/VillageLogo" } }
       },
       {
-        "path": "/absensi/{absensiId}",
-        "definition": {
-          "entityName": "Absensi",
-          "schema": { "$ref": "#/backend/entities/Absensi" },
-          "description": "Attendance records."
-        }
+        "path": "/heroImage/{heroId}",
+        "definition": { "entityName": "HeroImage", "schema": { "$ref": "#/backend/entities/HeroImage" } }
       },
       {
-        "path": "/absensi_settings/global",
-        "definition": {
-          "entityName": "AbsensiSettings",
-          "schema": { "$ref": "#/backend/entities/AbsensiSettings" },
-          "description": "Global attendance configuration."
-        }
+        "path": "/citizens/{userId}",
+        "definition": { "entityName": "CitizenProfile", "schema": { "$ref": "#/backend/entities/CitizenProfile" } }
+      },
+      {
+        "path": "/residents/{nik}",
+        "definition": { "entityName": "Resident", "schema": { "$ref": "#/backend/entities/Resident" } }
+      },
+      {
+        "path": "/complaints/{complaintId}",
+        "definition": { "entityName": "Complaint", "schema": { "$ref": "#/backend/entities/Complaint" } }
+      },
+      {
+        "path": "/letterRequests/{requestId}",
+        "definition": { "entityName": "LetterRequest", "schema": { "$ref": "#/backend/entities/LetterRequest" } }
+      },
+      {
+        "path": "/announcements/{announcementId}",
+        "definition": { "entityName": "Announcement", "schema": { "$ref": "#/backend/entities/Announcement" } }
       }
     ]
   }

@@ -1,177 +1,239 @@
-
 'use client';
 
-import { useUser, useDoc, useFirestore, useMemoFirebase } from "@/firebase"
-import { Button } from "@/components/ui/button"
-import { Home, LogIn, ChevronRight, Shield, Clock, MapPin, ExternalLink, Globe, UserCheck, ShieldCheck } from "lucide-react"
-import Link from "next/link"
-import Image from "next/image"
-import { doc } from "firebase/firestore"
-import { useEffect, useState } from "react"
+import React from 'react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Logo } from '@/components/logo';
+import { ArrowRight, ShieldCheck, Zap, Users, FileCheck, Phone, Mail, MapPin, Facebook, Instagram, Menu } from 'lucide-react';
+import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 export default function LandingPage() {
-  const { user } = useUser()
-  const db = useFirestore()
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  const configRef = useMemoFirebase(() => {
-    if (!db || !user) return null
-    return doc(db, "users", user.uid)
-  }, [db, user])
+  const firestore = useFirestore();
+  const heroRef = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'heroImage', 'default');
+  }, [firestore]);
   
-  const { data: configData } = useDoc(configRef)
+  const { data: heroData } = useDoc<{ imageUrl: string }>(heroRef);
+  
+  const defaultHeroImage = "https://images.unsplash.com/photo-1602989106211-81de671c23a9?q=80&w=2000";
+  const heroImageUrl = heroData?.imageUrl || defaultHeroImage;
 
-  if (!mounted) return null
+  const navLinks = [
+    { href: "/profil-desa", label: "Profil" },
+    { href: "/Kenali", label: "Kenali Kami" },
+    { href: "/BeritaDesa", label: "Berita Desa" },
+    { href: "/layanan-surat", label: "Layanan" },
+    { href: "/pengumuman", label: "Pengumuman" },
+  ];
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <header className="px-4 lg:px-10 h-20 flex items-center justify-between border-b bg-white/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
-            <Home className="h-6 w-6 text-white" />
+    <div className="flex flex-col min-h-screen bg-white">
+      {/* HEADER / NAVIGATION */}
+      <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-md">
+        <div className="container mx-auto px-4 h-20 flex items-center justify-between">
+          <Logo />
+          
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center gap-8">
+            {navLinks.map((link) => (
+              <Link key={link.href} href={link.href} className="text-sm font-bold text-slate-600 hover:text-primary transition-colors">
+                {link.label}
+              </Link>
+            ))}
+            <Link href="/login">
+              <Button variant="outline" className="border-primary text-primary font-bold rounded-xl">Login Admin</Button>
+            </Link>
+            <Link href="/dashboard">
+              <Button className="bg-secondary hover:bg-yellow-600 text-primary-foreground font-black px-6 rounded-xl shadow-lg shadow-secondary/20">Masuk Portal</Button>
+            </Link>
+          </nav>
+
+          {/* Mobile Navigation */}
+          <div className="md:hidden">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Menu className="h-6 w-6" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[300px] bg-primary text-white border-primary">
+                <SheetHeader className="sr-only">
+                  <SheetTitle>Menu</SheetTitle>
+                  <SheetDescription>Akses cepat layanan desa</SheetDescription>
+                </SheetHeader>
+                <div className="flex flex-col gap-8 mt-12">
+                  <Logo />
+                  <div className="flex flex-col gap-4">
+                    {navLinks.map((link) => (
+                      <Link 
+                        key={link.href} 
+                        href={link.href} 
+                        className="text-lg font-black uppercase tracking-widest text-white/80 hover:text-secondary border-b border-white/5 pb-2"
+                      >
+                        {link.label}
+                      </Link>
+                    ))}
+                    <Link href="/login" className="text-lg font-black uppercase tracking-widest text-white/80 hover:text-secondary border-b border-white/5 pb-2">
+                      Login Admin
+                    </Link>
+                  </div>
+                  <Link href="/dashboard">
+                    <Button className="w-full bg-secondary text-primary-foreground font-black h-14 rounded-2xl">
+                      MASUK PORTAL
+                    </Button>
+                  </Link>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
-          <div className="flex flex-col">
-            <span className="text-xl font-black tracking-tighter uppercase text-primary leading-none">SIDAURIP</span>
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Sistem Manajemen Desa</span>
-          </div>
-        </div>
-        <div className="flex gap-2">
-           <Button asChild variant="outline" className="rounded-full font-bold border-primary/20 text-primary hover:bg-primary/5 hidden sm:flex">
-            <Link href="/absensi/login/">Absensi</Link>
-          </Button>
-          <Button asChild variant="default" className="rounded-full font-bold hidden sm:flex bg-slate-900 hover:bg-slate-800 text-white">
-            <Link href="/absensi-admin/login/">Admin Absensi</Link>
-          </Button>
         </div>
       </header>
 
-      <main className="flex-1">
-        <section className="relative w-full py-20 lg:py-32 overflow-hidden bg-slate-900">
-          <div className="absolute inset-0 z-0">
-            {configData?.heroPhotoBase64 ? (
-              <Image 
-                src={configData.heroPhotoBase64} 
-                alt="Background Desa" 
-                fill 
-                className="object-cover opacity-40"
-                unoptimized
-              />
-            ) : (
-              <Image 
-                src="https://picsum.photos/seed/desa/1920/1080" 
-                alt="Background Placeholder" 
-                fill 
-                className="object-cover opacity-30 grayscale"
-                data-ai-hint="village landscape"
-              />
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent" />
-          </div>
-
-          <div className="container relative z-10 mx-auto px-4 text-center space-y-10">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/20 border border-primary/30 backdrop-blur-sm text-primary-foreground text-xs font-black uppercase tracking-widest animate-in fade-in slide-in-from-top-4 duration-1000">
-              <Globe className="h-3 w-3" /> Digitalisasi Desa Sidaurip
+      {/* HERO SECTION */}
+      <section className="relative h-[70vh] md:h-[80vh] flex items-center overflow-hidden">
+        <div className="absolute inset-0">
+           <img 
+            src={heroImageUrl}
+            alt="Desa Sidaurip"
+            className="w-full h-full object-cover"
+          />
+        </div>
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/80 via-primary/50 to-accent/40" />
+        <div className="container mx-auto px-4 relative z-10 text-white">
+          <div className="max-w-3xl space-y-4 md:space-y-6">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/20 border border-secondary/30 text-secondary backdrop-blur-sm">
+              <Zap className="h-4 w-4" />
+              <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest">Transformasi Digital Desa</span>
             </div>
-            
-            <div className="max-w-4xl mx-auto space-y-6">
-              <h1 className="text-4xl md:text-6xl lg:text-7xl font-black text-white uppercase tracking-tighter leading-[0.9] drop-shadow-2xl animate-in fade-in slide-in-from-bottom-8 duration-700">
-                Sistem Administrasi <br /> 
-                <span className="text-primary italic">Desa Terpadu</span>
-              </h1>
-              <p className="text-lg md:text-xl text-slate-300 font-medium max-w-2xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-10 duration-1000">
-                Solusi cerdas manajemen desa: Absensi Digital GPS, Pelaporan Kegiatan, Manajemen SPPD, dan Transparansi Anggaran dalam satu genggaman.
-              </p>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-in fade-in slide-in-from-bottom-12 duration-1000">
-              <Button asChild size="lg" className="h-16 px-10 rounded-2xl text-lg font-black uppercase shadow-2xl shadow-primary/30 gap-3 group active:scale-95 transition-all bg-primary hover:bg-primary/90">
-                <Link href="/login/">
-                  <LogIn className="h-5 w-5" /> Masuk Sistem
-                </Link>
-              </Button>
-              <Button asChild size="lg" variant="ghost" className="h-16 px-10 rounded-2xl text-lg font-bold border border-white/20 text-white hover:bg-white/10 backdrop-blur-md active:scale-95 transition-all gap-3">
-                <Link href="/absensi/login/">
-                  <UserCheck className="h-5 w-5" /> Absensi Perangkat
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </section>
-
-        <section id="features" className="py-24 bg-white">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-16 space-y-2">
-              <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight">Layanan Kami</h2>
-              <div className="h-1.5 w-20 bg-primary mx-auto rounded-full" />
-            </div>
-
-            <div className="grid md:grid-cols-4 gap-8">
-              {[
-                { title: "Absensi GPS", icon: MapPin, desc: "Absensi aman berbasis radius lokasi kantor untuk perangkat desa." },
-                { title: "Laporan Kegiatan", icon: Shield, desc: "Dokumentasi digital setiap pembangunan dan kegiatan desa secara real-time." },
-                { title: "Manajemen SPPD", icon: Clock, desc: "Pengajuan dan pencatatan perjalanan dinas yang sistematis dan transparan." },
-                { title: "Arsip Digital", icon: ExternalLink, desc: "Penyimpanan dokumen penting, SPJ, dan produk hukum desa dalam satu wadah aman." }
-              ].map((f, i) => (
-                <div key={i} className="p-8 rounded-[2.5rem] border border-slate-100 bg-slate-50/50 hover:border-primary/30 transition-all group">
-                  <div className="h-14 w-14 rounded-2xl bg-white shadow-md flex items-center justify-center mb-6 group-hover:bg-primary group-hover:text-white transition-colors">
-                    <f.icon className="h-7 w-7" />
-                  </div>
-                  <h3 className="text-xl font-bold text-slate-900 mb-3">{f.title}</h3>
-                  <p className="text-slate-500 leading-relaxed text-sm">{f.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      </main>
-
-      <footer className="bg-slate-900 text-slate-400 py-16 border-t border-white/5">
-        <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-4 gap-12 mb-12">
-            <div className="col-span-2 space-y-6">
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center">
-                  <Home className="h-4 w-4 text-white" />
-                </div>
-                <span className="text-xl font-black tracking-tighter text-white">SIDAURIP.ID</span>
-              </div>
-              <p className="max-w-md leading-relaxed text-sm">
-                Pemerintah Desa Sidaurip berkomitmen untuk terus berinovasi dalam memberikan pelayanan terbaik melalui pemanfaatan teknologi informasi yang modern.
-              </p>
-            </div>
-            
-            <div className="space-y-4">
-              <h4 className="text-white font-bold text-sm uppercase tracking-widest">Akses Cepat</h4>
-              <ul className="space-y-3 text-sm">
-                <li><Link href="/absensi/login/" className="hover:text-primary transition-colors">Absensi Perangkat</Link></li>
-                <li><Link href="/absensi-admin/login/" className="hover:text-primary transition-colors">Monitoring Absensi</Link></li>
-              </ul>
-            </div>
-
-            <div className="space-y-4">
-              <h4 className="text-white font-bold text-sm uppercase tracking-widest">Pemerintahan</h4>
-              <ul className="space-y-3 text-sm">
-                <li><Link href="/login/" className="hover:text-primary transition-colors">Panel Manajemen Desa</Link></li>
-                <li><Link href="/apbdes/" className="hover:text-primary transition-colors">Informasi Anggaran</Link></li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
-            <p className="text-xs font-bold uppercase tracking-widest">
-              &copy; 2026 Pemerintah Desa Sidaurip. Seluruh Hak Cipta Dilindungi.
+            <h1 className="text-4xl sm:text-5xl md:text-7xl font-black tracking-tight leading-tight uppercase font-display">
+              Selamat Datang di Portal Resmi <span className="text-secondary italic">Sidaurip</span>
+            </h1>
+            <p className="text-sm md:text-xl text-white/80 max-w-2xl font-medium leading-relaxed">
+              Mewujudkan tata kelola pemerintahan desa yang modern, transparan, dan melayani sepenuh hati melalui inovasi digital.
             </p>
-            <div className="flex gap-6 text-[10px] font-black uppercase tracking-tighter">
-              <span>Kecamatan Gandrungmangu</span>
-              <span>Kabupaten Cilacap</span>
+            <div className="flex flex-col sm:flex-row gap-4 pt-4">
+              <Link href="/dashboard">
+                <Button size="lg" className="bg-secondary hover:bg-yellow-600 text-primary-foreground font-black h-12 md:h-14 px-8 md:px-10 text-base md:text-lg rounded-2xl transition-all active:scale-95 shadow-xl shadow-secondary/30">
+                  Mulai Layanan Mandiri
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
+              <Link href="/profil-desa">
+                <Button size="lg" variant="outline" className="bg-white/10 border-white/30 text-white hover:bg-white/20 font-bold h-12 md:h-14 px-8 md:px-10 text-base md:text-lg rounded-2xl backdrop-blur-sm transition-all">
+                  Kenali Desa Kami
+                </Button>
+              </Link>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* VISI MISI SECTION */}
+      <section className="py-16 md:py-24 bg-background border-y border-slate-200">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto text-center space-y-6 md:space-y-8">
+            <div className="w-12 h-1 bg-secondary rounded-full mx-auto" />
+            <h2 className="text-[10px] md:text-sm font-black text-primary uppercase tracking-[0.3em]">Komitmen Kami</h2>
+            <blockquote className="text-2xl md:text-4xl font-display italic text-slate-800 leading-relaxed font-semibold">
+              "Desa Sidaurip berkomitmen memberikan pelayanan publik berbasis digital yang cepat, transparan, dan akuntabel untuk seluruh masyarakat."
+            </blockquote>
+            <p className="text-slate-500 font-bold tracking-widest uppercase text-[10px] md:text-xs">Pemerintah Desa Sidaurip</p>
+          </div>
+        </div>
+      </section>
+
+      {/* STATISTICS SECTION */}
+      <section className="py-16 md:py-20 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-12">
+            {[
+              { label: 'Total Penduduk', value: '10.800+', icon: Users, color: 'text-emerald-600' },
+              { label: 'Surat Terproses', value: '1.200+', icon: FileCheck, color: 'text-secondary' },
+              { label: 'Transparansi', value: '100%', icon: ShieldCheck, color: 'text-accent' },
+              { label: 'Kecepatan', value: '24/7', icon: Zap, color: 'text-amber-500' },
+            ].map((stat, i) => (
+              <div key={i} className="text-center space-y-2 md:space-y-4 group">
+                <div className={`mx-auto w-12 h-12 md:w-16 md:h-16 rounded-2xl md:rounded-3xl bg-slate-50 flex items-center justify-center transition-all group-hover:bg-primary group-hover:text-white`}>
+                  <stat.icon className={`h-6 w-6 md:h-8 md:w-8 ${stat.color} group-hover:text-white transition-colors`} />
+                </div>
+                <div className="space-y-0.5 md:space-y-1">
+                  <h3 className="text-xl md:text-4xl font-black text-slate-900 tracking-tighter">{stat.value}</h3>
+                  <p className="text-[8px] md:text-sm font-bold text-slate-400 uppercase tracking-widest">{stat.label}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer className="bg-primary text-white/70 py-16 mt-auto border-t border-white/5">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 mb-16">
+            <div className="space-y-6">
+              <Logo />
+              <div className="space-y-2">
+                <p className="text-white font-black text-lg">Pemerintah Desa Sidaurip</p>
+                <p className="text-sm">Kecamatan Gandrungmangu, Kabupaten Cilacap</p>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <h4 className="text-white font-bold uppercase tracking-widest text-xs">Kontak Resmi</h4>
+              <ul className="space-y-4 text-sm">
+                <li className="flex items-start gap-3">
+                  <MapPin className="h-5 w-5 text-secondary shrink-0" />
+                  <span>Jl. Perintis No.144, Sidaurip, Kec. Sidaurip, Cilacap</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <Phone className="h-5 w-5 text-secondary shrink-0" />
+                  <span>0851-3221-7144</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <Mail className="h-5 w-5 text-secondary shrink-0" />
+                  <span>sidaurip@gmail.id</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="space-y-6">
+              <h4 className="text-white font-bold uppercase tracking-widest text-xs">Jam Pelayanan</h4>
+              <div className="space-y-4">
+                <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
+                  <p className="text-white font-bold text-sm">Senin - Jumat</p>
+                  <p className="text-xs mt-1 opacity-80">08.00 - 16.00 WIB</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-6 text-center md:text-left">
+              <h4 className="text-white font-bold uppercase tracking-widest text-xs">Media Sosial</h4>
+              <div className="flex justify-center md:justify-start gap-4">
+                <Link href="#" className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-secondary hover:text-primary transition-all">
+                  <Facebook className="h-5 w-5" />
+                </Link>
+                <Link href="#" className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-secondary hover:text-primary transition-all">
+                  <Instagram className="h-5 w-5" />
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-8 border-t border-white/5 text-center text-[10px] font-bold uppercase tracking-widest">
+            <p>© 2026 Pemerintah Desa Sidaurip</p>
           </div>
         </div>
       </footer>
     </div>
-  )
+  );
 }
