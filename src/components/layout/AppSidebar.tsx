@@ -14,8 +14,7 @@ import {
   CircleDollarSign,
   Files,
   Calendar,
-  Archive,
-  Inbox
+  Archive
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -88,7 +87,7 @@ export function AppSidebar() {
   }
 
   return (
-    <Sidebar className="border-r bg-card shadow-none" collapsible="none" style={{ width: "18rem" } as React.CSSProperties}>
+    <Sidebar className="border-r bg-card shadow-none" collapsible="icon">
       <SidebarHeader className="p-6">
         <div className="flex items-center gap-4">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-background shadow-lg shadow-primary/10 border border-border overflow-hidden shrink-0">

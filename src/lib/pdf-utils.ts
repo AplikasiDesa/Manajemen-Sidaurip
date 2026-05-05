@@ -463,18 +463,15 @@ export const generateSPPDPDF = async (values: any, logoBase64?: string | null): 
   drawTableRow("6.", "a. Tempat Berangkat\nb. Tempat Tujuan", `a. Sidaurip\nb. ${values.destination || "-"}`);
   drawTableRow("7.", "a. Lamanya\nb. Tanggal Berangkat\nc. Tanggal Kembali", `a. 1 (satu) hari\nb. ${formatDateIndo(values.startDate)}\nc. ${formatDateIndo(values.endDate)}`);
 
-  // POINT 8: PENGIKUT (REFINED TANGGAL & GARIS)
   const companions = values.companions ? values.companions.split("\n").filter(Boolean) : [];
   const header8H = 8.0;
   const row8H = 8.0;
   const totalRow8H = header8H + (Math.max(1, companions.length) * row8H);
 
-  // Bingkai Kolom 1 (No. 8)
   doc.rect(margin, currentY, col1W, totalRow8H);
   doc.setFont("helvetica", "normal");
   doc.text("8.", margin + 5, currentY + 5, { align: "center" });
 
-  // Header Nama/Jabatan Pengikut
   doc.rect(margin + col1W, currentY, col2W, header8H);
   doc.text("Nama Pengikut", margin + col1W + 2, currentY + 5.5);
   doc.rect(margin + col1W + col2W, currentY, col3W, header8H);
@@ -495,7 +492,7 @@ export const generateSPPDPDF = async (values: any, logoBase64?: string | null): 
     doc.rect(margin + col1W + col2W, compY, col3W, row8H);
     compY += row8H;
   }
-  currentY = compY; // Update currentY ke posisi setelah tabel pengikut
+  currentY = compY;
 
   drawTableRow("9.", "Pembebanan\na. Instansi\nb. Mata Anggaran", `\na. Pemdes Sidaurip\nb. APBDes 2026`);
   drawTableRow("10.", "Keterangan", "-");
@@ -594,380 +591,6 @@ export const generateSPPDPDF = async (values: any, logoBase64?: string | null): 
   return doc.output("blob");
 }
 
-export const generateDaftarHadirPDF = async (values: any, logoBase64?: string | null): Promise<Blob> => {
-  const doc = new jsPDF();
-  const margin = 15;
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const contentWidth = pageWidth - (margin * 2);
-  const d = values.date ? new Date(values.date) : new Date();
-
-  const logoSource = (logoBase64 && logoBase64.length > 50 && logoBase64.startsWith('data:image')) ? logoBase64 : LOGO_CILACAP_FALLBACK;
-  const logoImg = await loadImage(logoSource);
-
-  addKopSuratSync(doc, logoImg, margin, pageWidth);
-  
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.text("DAFTAR HADIR", pageWidth / 2, 50, { align: "center" });
-  
-  let currentY = 62;
-  doc.setFontSize(11);
-  
-  const labelW = 35;
-  const valW = contentWidth - labelW - 3;
-
-  const addHeaderDetail = (label: string, text: string) => {
-    doc.setFont("helvetica", "bold");
-    doc.text(label, margin, currentY);
-    doc.text(":", margin + labelW, currentY);
-    doc.setFont("helvetica", "normal");
-    const lines = doc.splitTextToSize(text || "-", valW);
-    lines.forEach((line: string, i: number) => {
-      doc.text(line, margin + labelW + 3, currentY + (i * 6));
-    });
-    currentY += Math.max(lines.length * 6, 6) + 1;
-  }
-
-  addHeaderDetail("Kegiatan", values.title);
-  addHeaderDetail("Hari / Tanggal", format(d, "EEEE, d MMMM yyyy", { locale: localeID }));
-  addHeaderDetail("Waktu", values.time || "09:00 WIB");
-  addHeaderDetail("Tempat", values.location);
-  
-  currentY += 8;
-  const colW = [12, 65, 75, 28]; 
-  const baseRowHeight = 12;
-  const tableHeaders = ["NO", "NAMA", "ALAMAT / JABATAN", "TTD"];
-
-  const drawHeader = () => {
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    let hX = margin;
-    tableHeaders.forEach((header, i) => {
-        doc.rect(hX, currentY, colW[i], 12);
-        doc.text(header, hX + colW[i] / 2, currentY + 8, { align: "center" });
-        hX += colW[i];
-    });
-    currentY += 12;
-  }
-
-  drawHeader();
-  
-  const totalRows = values.jumlahOrang || 0;
-  for (let i = 0; i < totalRows; i++) {
-    const p = values.participants?.[i] || { name: "", position: "" };
-
-    const nameLines = doc.splitTextToSize((p.name || "").toUpperCase(), colW[1] - 4);
-    const positionLines = doc.splitTextToSize((p.position || "").toUpperCase(), colW[2] - 4);
-    const lineCount = Math.max(nameLines.length, positionLines.length, 1);
-    const rowHeight = Math.max(baseRowHeight, (lineCount * 5) + 2);
-
-    if (currentY + rowHeight > pageHeight - 20) {
-      doc.addPage();
-      addKopSuratSync(doc, logoImg, margin, pageWidth);
-      currentY = 40;
-      drawHeader();
-    }
-    
-    const startY = currentY;
-    let rX = margin;
-    colW.forEach(w => {
-      doc.rect(rX, startY, w, rowHeight);
-      rX += w;
-    });
-
-    const textY = startY + rowHeight / 2;
-    let cX = margin;
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    
-    doc.text((i + 1).toString(), cX + colW[0] / 2, textY, { align: "center", baseline: "middle" });
-    cX += colW[0];
-    
-    doc.text(nameLines, cX + 2, textY, { baseline: "middle" });
-    cX += colW[1];
-
-    doc.text(positionLines, cX + 2, textY, { baseline: "middle" });
-    cX += colW[2];
-
-    doc.setFontSize(8);
-    const signX = (i % 2 === 0) ? cX + 2 : cX + (colW[3] / 2);
-    doc.text(`${i + 1}. .......`, signX, textY, { baseline: "middle" });
-    
-    currentY += rowHeight;
-  }
-
-  if (currentY > pageHeight - 60) { 
-    doc.addPage(); 
-    addKopSuratSync(doc, logoImg, margin, pageWidth);
-    currentY = 40; 
-  }
-
-  currentY += 15;
-  const sigX = pageWidth - margin - 65;
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  doc.text(`Sidaurip, ${format(d, "d MMMM yyyy", { locale: localeID })}`, sigX, currentY);
-  doc.setFont("helvetica", "bold");
-  doc.text("Kepala Desa Sidaurip,", sigX, currentY + 6);
-  currentY += 25; 
-  doc.text("TASIMIN", sigX, currentY);
-  const nW = doc.getTextWidth("TASIMIN");
-  doc.line(sigX, currentY + 1, sigX + nW, currentY + 1);
-  
-  return doc.output("blob");
-}
-
-export const generateUangSakuPDF = async (values: any, logoBase64?: string | null): Promise<Blob> => {
-  const doc = new jsPDF();
-  const margin = 10;
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const d = values.date ? new Date(values.date) : new Date();
-  
-  const logoSource = (logoBase64 && logoBase64.length > 50 && logoBase64.startsWith('data:image')) ? logoBase64 : LOGO_CILACAP_FALLBACK;
-  const logoImg = await loadImage(logoSource);
-
-  const nom = parseInt(values.nominal) || 0;
-  const taxPercent = parseInt(values.tax) || 0;
-  const taxVal = Math.round(nom * (taxPercent / 100));
-  const netVal = nom - taxVal;
-
-  const colW = [8, 35, 35, 22, 18, 22, 45]; 
-  const baseRowHeight = 12;
-  const headers = ["NO", "NAMA", "JABATAN", "NOMINAL", "PAJAK", "DITERIMA", "TTD"];
-
-  let currentY = 0;
-
-  const drawTableHeader = () => {
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9);
-      let hX = margin;
-      headers.forEach((h, i) => {
-          doc.rect(hX, currentY, colW[i], 10);
-          doc.text(h, hX + colW[i]/2, currentY + 6.5, { align: "center" });
-          hX += colW[i];
-      });
-      currentY += 10;
-  };
-
-  addKopSuratSync(doc, logoImg, margin, pageWidth);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.text("TANDA TERIMA UANG SAKU PESERTA", pageWidth / 2, 50, { align: "center" });
-  currentY = 60;
-  
-  doc.setFontSize(10);
-  const addHeaderRow = (label: string, text: string) => {
-      doc.setFont("helvetica", "bold");
-      doc.text(label, margin, currentY);
-      doc.text(":", margin + 30, currentY);
-      doc.setFont("helvetica", "normal");
-      doc.text(text || "-", margin + 33, currentY);
-      currentY += 6;
-  };
-  addHeaderRow("Kegiatan", values.title);
-  addHeaderRow("Hari / Tanggal", format(d, "EEEE, d MMMM yyyy", { locale: localeID }));
-  addHeaderRow("Tempat", values.location);
-  currentY += 4;
-
-  drawTableHeader();
-
-  const kuota = values.jumlahOrang || 0;
-  for (let i = 0; i < kuota; i++) {
-      const p = values.participants?.[i] || { name: "", position: "" };
-      const nameLines = doc.splitTextToSize((p.name || "").toUpperCase(), colW[1] - 4);
-      const positionLines = doc.splitTextToSize((p.position || "").toUpperCase(), colW[2] - 4);
-      const lineCount = Math.max(nameLines.length, positionLines.length, 1);
-      const rowHeight = Math.max(baseRowHeight, (lineCount * 4) + 4);
-
-      if (currentY + rowHeight > pageHeight - 20) {
-          doc.addPage();
-          addKopSuratSync(doc, logoImg, margin, pageWidth);
-          currentY = 40;
-          drawTableHeader();
-      }
-
-      const startY = currentY;
-      let rX = margin;
-      colW.forEach((w) => { doc.rect(rX, startY, w, rowHeight); rX += w; });
-
-      const textY = startY + rowHeight / 2;
-      let cX = margin;
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      doc.text((i + 1).toString(), cX + colW[0]/2, textY, { align: "center", baseline: "middle" });
-      cX += colW[0];
-      
-      doc.setFontSize(8);
-      doc.text(nameLines, cX + 2, textY, { maxWidth: colW[1]-4, baseline: "middle" });
-      cX += colW[1];
-      doc.text(positionLines, cX + 2, textY, { maxWidth: colW[2]-4, baseline: "middle" });
-      cX += colW[2];
-      
-      doc.setFontSize(9);
-      if (p.name) {
-          doc.text(nom.toLocaleString('id-ID'), cX + colW[3] - 2, textY, { align: "right", baseline: "middle" });
-          cX += colW[3];
-          doc.text(taxVal.toLocaleString('id-ID'), cX + colW[4] - 2, textY, { align: "right", baseline: "middle" });
-          cX += colW[4];
-          doc.text(netVal.toLocaleString('id-ID'), cX + colW[5] - 2, textY, { align: "right", baseline: "middle" });
-          cX += colW[5];
-      } else {
-          cX += colW[3] + colW[4] + colW[5];
-      }
-
-      doc.setFontSize(7);
-      const signX = (i % 2 === 0) ? cX + 3 : cX + (colW[6] / 2);
-      doc.text(`${i + 1}. .......`, signX, textY, { baseline: "middle" });
-      
-      currentY += rowHeight;
-  }
-
-  if (currentY > pageHeight - 60) { 
-    doc.addPage(); 
-    addKopSuratSync(doc, logoImg, margin, pageWidth);
-    currentY = 40;
-  }
-  
-  currentY += 15;
-  const sigX = pageWidth - 70;
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  doc.text(`Sidaurip, ${format(d, "d MMMM yyyy", { locale: localeID })}`, sigX, currentY);
-  doc.setFont("helvetica", "bold");
-  doc.text("Kepala Desa Sidaurip,", sigX, currentY + 6);
-  currentY += 25;
-  doc.text("TASIMIN", sigX, currentY);
-  const nW = doc.getTextWidth("TASIMIN");
-  doc.line(sigX, currentY + 1, sigX + nW, currentY + 1);
-
-  return doc.output("blob");
-}
-
-export const generateHonorNarasumberPDF = async (values: any, logoBase64?: string | null): Promise<Blob> => {
-  const doc = new jsPDF();
-  const margin = 15;
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const d = values.date ? new Date(values.date) : new Date();
-
-  const logoSource = (logoBase64 && logoBase64.length > 50 && logoBase64.startsWith('data:image')) ? logoBase64 : LOGO_CILACAP_FALLBACK;
-  const logoImg = await loadImage(logoSource);
-
-  addKopSuratSync(doc, logoImg, margin, pageWidth);
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.text("HONORARIUM NARASUMBER", pageWidth / 2, 50, { align: "center" });
-
-  let currentY = 65;
-  doc.setFontSize(10);
-
-  const addHeaderRow = (label: string, text: string) => {
-    doc.setFont("helvetica", "bold");
-    doc.text(label, margin, currentY);
-    doc.text(":", margin + 25, currentY);
-    doc.setFont("helvetica", "normal");
-    doc.text(text || "-", margin + 28, currentY);
-    currentY += 6;
-  };
-
-  addHeaderRow("Kegiatan", values.title);
-  addHeaderRow("Tanggal", formatDateIndo(values.date));
-  addHeaderRow("Tempat", values.location);
-
-  currentY += 5;
-  const colW = [10, 40, 40, 22, 18, 22, 28];
-  const baseRowHeight = 12;
-  const headers = ["NO", "NAMA", "JABATAN", "NOMINAL", "PAJAK", "DITERIMA", "TTD"];
-
-  const drawHeader = () => {
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    let hX = margin;
-    headers.forEach((h, i) => {
-      doc.rect(hX, currentY, colW[i], 10);
-      doc.text(h, hX + colW[i] / 2, currentY + 6.5, { align: "center" });
-      hX += colW[i];
-    });
-    currentY += 10;
-  }
-
-  drawHeader();
-
-  const narsumList = values.narsum || [];
-  narsumList.forEach((p: any, i: number) => {
-    const nom = parseInt(p.nominal) || 0;
-    const taxPercent = parseInt(p.tax) || 0;
-    const taxVal = Math.round(nom * (taxPercent / 100));
-    const netVal = nom - taxVal;
-
-    const nameLines = doc.splitTextToSize((p.name || "").toUpperCase(), colW[1] - 4);
-    const positionLines = doc.splitTextToSize((p.position || "").toUpperCase(), colW[2] - 4);
-    const lineCount = Math.max(nameLines.length, positionLines.length, 1);
-    const rowHeight = Math.max(baseRowHeight, (lineCount * 5) + 2);
-    
-    if (currentY + rowHeight > pageHeight - 20) { 
-        doc.addPage(); 
-        addKopSuratSync(doc, logoImg, margin, pageWidth);
-        currentY = 40;
-        drawHeader();
-    }
-    const startY = currentY;
-
-    let rX = margin;
-    colW.forEach((w) => { doc.rect(rX, startY, w, rowHeight); rX += w; });
-
-    const textY = startY + rowHeight / 2;
-
-    let cX = margin;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.text((i + 1).toString(), cX + colW[0] / 2, textY, { align: "center", baseline: "middle" });
-    cX += colW[0];
-    
-    doc.text(nameLines, cX + 2, textY, { baseline: "middle" });
-    cX += colW[1];
-    doc.text(positionLines, cX + 2, textY, { baseline: "middle" });
-    cX += colW[2];
-
-    doc.text(nom.toLocaleString('id-ID'), cX + colW[3] - 2, textY, { align: "right", baseline: "middle" });
-    cX += colW[3];
-    doc.text(taxVal.toLocaleString('id-ID'), cX + colW[4] - 2, textY, { align: "right", baseline: "middle" });
-    cX += colW[4];
-    doc.text(netVal.toLocaleString('id-ID'), cX + colW[5] - 2, textY, { align: "right", baseline: "middle" });
-    cX += colW[5];
-
-    const signX = (i % 2 === 0) ? cX + 2 : cX + (colW[6] / 2);
-    doc.setFontSize(8);
-    doc.text(`${i + 1}. .......`, signX, textY, { baseline: "middle" });
-    
-    currentY += rowHeight;
-  });
-
-  if (currentY > pageHeight - 60) { 
-    doc.addPage(); 
-    addKopSuratSync(doc, logoImg, margin, pageWidth);
-    currentY = 40; 
-  }
-  currentY += 15;
-  const sigX = pageWidth - margin - 65;
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  doc.text(`Sidaurip, ${formatDateIndo(values.date)}`, sigX, currentY);
-  doc.setFont("helvetica", "bold");
-  doc.text("Kepala Desa Sidaurip,", sigX, currentY + 6);
-  currentY += 25;
-  doc.text("TASIMIN", sigX, currentY);
-  const nW = doc.getTextWidth("TASIMIN");
-  doc.line(sigX, currentY + 1, sigX + nW, currentY + 1);
-
-  return doc.output("blob");
-}
-
 export const generateSiltapPDF = async (values: any, logoBase64?: string | null): Promise<Blob> => {
   const doc = new jsPDF();
   const margin = 20;
@@ -977,6 +600,22 @@ export const generateSiltapPDF = async (values: any, logoBase64?: string | null)
 
   const logoSource = (logoBase64 && logoBase64.length > 50 && logoBase64.startsWith('data:image')) ? logoBase64 : LOGO_CILACAP_FALLBACK;
   const logoImg = await loadImage(logoSource);
+
+  // Column Widths: [NO (10), NAMA (40), JABATAN (55), NOMINAL (25), TTD (40)]
+  const colW = [10, 40, 55, 25, 40]; 
+  const rowH = 12;
+  const headers = ["NO", "NAMA", "JABATAN", "NOMINAL", "TTD"];
+
+  const drawHeader = (startY: number) => {
+    doc.setFont("helvetica", "bold");
+    let hX = margin;
+    headers.forEach((h, i) => {
+      doc.rect(hX, startY, colW[i], 10);
+      doc.text(h, hX + colW[i] / 2, startY + 6.5, { align: "center" });
+      hX += colW[i];
+    });
+    return startY + 10;
+  }
 
   addKopSuratSync(doc, logoImg, margin, pageWidth);
 
@@ -989,63 +628,57 @@ export const generateSiltapPDF = async (values: any, logoBase64?: string | null)
   doc.text(`Bulan : ${values.month}`, margin, 60);
 
   let currentY = 65;
-  const colW = [10, 50, 55, 25, 30]; 
-  const rowH = 12;
-  const headers = ["NO", "NAMA", "JABATAN", "NOMINAL", "TTD"];
-
-  const drawHeader = () => {
-    doc.setFont("helvetica", "bold");
-    doc.rect(margin, currentY, colW[0], 10);
-    doc.text("NO", margin + 5, currentY + 6.5, { align: "center" });
-    doc.rect(margin + colW[0], currentY, colW[1], 10);
-    doc.text("NAMA", margin + colW[0] + colW[1] / 2, currentY + 6.5, { align: "center" });
-    doc.rect(margin + colW[0] + colW[1], currentY, colW[2], 10);
-    doc.text("JABATAN", margin + colW[0] + colW[1] + colW[2] / 2, currentY + 6.5, { align: "center" });
-    doc.rect(margin + colW[0] + colW[1] + colW[2], currentY, colW[3], 10);
-    doc.text("NOMINAL", margin + colW[0] + colW[1] + colW[2] + colW[3] / 2, currentY + 6.5, { align: "center" });
-    doc.rect(margin + colW[0] + colW[1] + colW[2] + colW[3], currentY, colW[4], 10);
-    doc.text("TTD", margin + colW[0] + colW[1] + colW[2] + colW[3] + colW[4] / 2, currentY + 6.5, { align: "center" });
-    currentY += 10;
-  }
-
-  drawHeader();
+  currentY = drawHeader(currentY);
 
   doc.setFont("helvetica", "normal");
 
+  const totalItems = values.data.length;
   values.data.forEach((item: any, i: number) => {
     const splitJabatan = doc.splitTextToSize(item.jabatan || "", colW[2] - 4);
-    const itemHeight = Math.max(rowH, splitJabatan.length * 5 + 4);
+    const splitNama = doc.splitTextToSize(item.name || "", colW[1] - 4);
+    const itemHeight = Math.max(rowH, splitJabatan.length * 5 + 4, splitNama.length * 5 + 4);
 
-    if (currentY + itemHeight > pageHeight - 20) { 
+    // Pagination logic to prevent orphan footer
+    const isLastItem = i === totalItems - 1;
+    const footerNeededSpace = 65; // Estimated space for signature block
+    const threshold = isLastItem ? pageHeight - footerNeededSpace : pageHeight - 20;
+
+    if (currentY + itemHeight > threshold) { 
       doc.addPage();
       addKopSuratSync(doc, logoImg, margin, pageWidth);
       currentY = 40;
-      drawHeader();
+      currentY = drawHeader(currentY);
     }
+    
     const startY = currentY;
-
     doc.rect(margin, startY, colW[0], itemHeight);
     doc.text((i + 1).toString(), margin + 5, startY + (itemHeight / 2) + 1.5, { align: "center" });
+    
     doc.rect(margin + colW[0], startY, colW[1], itemHeight);
-    doc.text(item.name || "", margin + colW[0] + 2, startY + (itemHeight / 2) + 1.5);
+    doc.text(splitNama, margin + colW[0] + 2, startY + 5);
+    
     doc.rect(margin + colW[0] + colW[1], startY, colW[2], itemHeight);
     doc.text(splitJabatan, margin + colW[0] + colW[1] + 2, startY + 5);
+    
     doc.rect(margin + colW[0] + colW[1] + colW[2], startY, colW[3], itemHeight);
     doc.text((item.nominal || 0).toLocaleString('id-ID'), margin + colW[0] + colW[1] + colW[2] + colW[3] - 2, startY + (itemHeight / 2) + 1.5, { align: "right" });
-    doc.rect(margin + colW[0] + colW[1] + colW[2] + colW[3], startY, colW[4], itemHeight);
     
-    const signX = (i % 2 === 0) ? margin + colW[0] + colW[1] + colW[2] + colW[3] + 2 : margin + colW[0] + colW[1] + colW[2] + colW[3] + colW[4] / 2;
+    doc.rect(margin + colW[0] + colW[1] + colW[2] + colW[3], startY, colW[4], itemHeight);
+    const signX = (i % 2 === 0) ? margin + colW[0] + colW[1] + colW[2] + colW[3] + 3 : margin + colW[0] + colW[1] + colW[2] + colW[3] + (colW[4] / 2);
     doc.setFontSize(8);
-    doc.text(`${i + 1}.`, signX, startY + (itemHeight / 2) + 1);
+    doc.text(`${i + 1}. .......`, signX, startY + (itemHeight / 2) + 1);
     doc.setFontSize(10);
+    
     currentY += itemHeight;
   });
 
+  // Final check for footer room
   if (currentY > pageHeight - 60) { 
     doc.addPage(); 
     addKopSuratSync(doc, logoImg, margin, pageWidth);
     currentY = 40; 
   }
+  
   currentY += 15;
   const sigX = pageWidth - margin - 65;
   doc.text(`Sidaurip, ${formatDateIndo(values.date)}`, sigX, currentY);
@@ -1168,5 +801,130 @@ export const generateInsentifPDF = async (values: any, logoBase64?: string | nul
   const nW = doc.getTextWidth("TASIMIN");
   doc.line(sigX, currentY + 1, sigX + nW, currentY + 1);
   
+  return doc.output("blob");
+}
+
+export const generateHonorNarasumberPDF = async (values: any, logoBase64?: string | null): Promise<Blob> => {
+  const doc = new jsPDF();
+  const margin = 15;
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const d = values.date ? new Date(values.date) : new Date();
+
+  const logoSource = (logoBase64 && logoBase64.length > 50 && logoBase64.startsWith('data:image')) ? logoBase64 : LOGO_CILACAP_FALLBACK;
+  const logoImg = await loadImage(logoSource);
+
+  addKopSuratSync(doc, logoImg, margin, pageWidth);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.text("TANDA TERIMA HONORARIUM NARASUMBER", pageWidth / 2, 50, { align: "center" });
+
+  let currentY = 60;
+  doc.setFontSize(10);
+  const addHeaderRow = (label: string, text: string) => {
+      doc.setFont("helvetica", "bold");
+      doc.text(label, margin, currentY);
+      doc.text(":", margin + 30, currentY);
+      doc.setFont("helvetica", "normal");
+      doc.text(text || "-", margin + 33, currentY);
+      currentY += 6;
+  };
+  addHeaderRow("Kegiatan", values.title);
+  addHeaderRow("Hari / Tanggal", format(d, "EEEE, d MMMM yyyy", { locale: localeID }));
+  addHeaderRow("Tempat", values.location || "Balai Desa Sidaurip");
+  addHeaderRow("Waktu", values.time || "09:00 WIB - Selesai");
+  currentY += 4;
+
+  const colW = [10, 45, 45, 22, 18, 22, 18]; 
+  const headers = ["NO", "NAMA", "JABATAN", "HONOR", "PAJAK", "DITERIMA", "TTD"];
+
+  const drawHeader = (startY: number) => {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    let hX = margin;
+    headers.forEach((h, i) => {
+      doc.rect(hX, startY, colW[i], 10);
+      doc.text(h, hX + colW[i] / 2, startY + 6.5, { align: "center" });
+      hX += colW[i];
+    });
+    return startY + 10;
+  };
+
+  currentY = drawHeader(currentY);
+
+  doc.setFont("helvetica", "normal");
+  const totalNarsum = values.narsum.length;
+  values.narsum.forEach((item: any, i: number) => {
+    const nom = parseInt(item.nominal) || 0;
+    const taxPercent = parseInt(item.tax) || 0;
+    const taxVal = Math.round(nom * (taxPercent / 100));
+    const netVal = nom - taxVal;
+
+    const splitName = doc.splitTextToSize((item.name || "").toUpperCase(), colW[1] - 4);
+    const splitPos = doc.splitTextToSize((item.position || "").toUpperCase(), colW[2] - 4);
+    const itemHeight = Math.max(12, splitName.length * 5 + 4, splitPos.length * 5 + 4);
+
+    const isLast = i === totalNarsum - 1;
+    const threshold = isLast ? pageHeight - 65 : pageHeight - 20;
+
+    if (currentY + itemHeight > threshold) {
+      doc.addPage();
+      addKopSuratSync(doc, logoImg, margin, pageWidth);
+      currentY = 40;
+      currentY = drawHeader(currentY);
+      doc.setFont("helvetica", "normal");
+    }
+
+    let cX = margin;
+    doc.rect(cX, currentY, colW[0], itemHeight);
+    doc.text((i + 1).toString(), cX + 5, currentY + itemHeight / 2 + 1.5, { align: "center" });
+    cX += colW[0];
+
+    doc.rect(cX, currentY, colW[1], itemHeight);
+    doc.text(splitName, cX + 2, currentY + 5);
+    cX += colW[1];
+
+    doc.rect(cX, currentY, colW[2], itemHeight);
+    doc.text(splitPos, cX + 2, currentY + 5);
+    cX += colW[2];
+
+    doc.rect(cX, currentY, colW[3], itemHeight);
+    doc.text(nom.toLocaleString('id-ID'), cX + colW[3] - 2, currentY + itemHeight / 2 + 1.5, { align: "right" });
+    cX += colW[3];
+
+    doc.rect(cX, currentY, colW[4], itemHeight);
+    doc.text(taxVal.toLocaleString('id-ID'), cX + colW[4] - 2, currentY + itemHeight / 2 + 1.5, { align: "right" });
+    cX += colW[4];
+
+    doc.rect(cX, currentY, colW[5], itemHeight);
+    doc.text(netVal.toLocaleString('id-ID'), cX + colW[5] - 2, currentY + itemHeight / 2 + 1.5, { align: "right" });
+    cX += colW[5];
+
+    doc.rect(cX, currentY, colW[6], itemHeight);
+    const signX = (i % 2 === 0) ? cX + 2 : cX + (colW[6] / 2);
+    doc.setFontSize(8);
+    doc.text(`${i + 1}. .......`, signX, currentY + itemHeight / 2 + 1);
+    doc.setFontSize(10);
+
+    currentY += itemHeight;
+  });
+
+  if (currentY > pageHeight - 60) {
+    doc.addPage();
+    addKopSuratSync(doc, logoImg, margin, pageWidth);
+    currentY = 40;
+  }
+
+  currentY += 15;
+  const sigX = pageWidth - margin - 65;
+  doc.text(`Sidaurip, ${formatDateIndo(values.date)}`, sigX, currentY);
+  doc.setFont("helvetica", "bold");
+  doc.text("Kepala Desa Sidaurip,", sigX, currentY + 6);
+  currentY += 25;
+  doc.text("TASIMIN", sigX, currentY);
+  const nW = doc.getTextWidth("TASIMIN");
+  doc.line(sigX, currentY + 1, sigX + nW, currentY + 1);
+
   return doc.output("blob");
 }

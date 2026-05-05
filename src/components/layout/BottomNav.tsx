@@ -25,22 +25,27 @@ export function BottomNav() {
   if (!mounted) return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-card px-4 pb-safe-area-inset-bottom md:hidden shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
-      <div className="flex justify-between py-2">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-card/95 backdrop-blur-md px-4 pb-safe-area-inset-bottom md:hidden shadow-[0_-8px_30px_rgba(0,0,0,0.08)]">
+      <div className="flex justify-around py-3">
         {navItems.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href)
+          const isActive = pathname === item.href || (item.href !== "/dashboard/" && pathname.startsWith(item.href))
           
           return (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center gap-1 px-3 py-1 transition-all active:scale-90",
-                isActive ? "text-primary font-bold" : "text-muted-foreground"
+                "flex flex-col items-center gap-1.5 px-4 py-1 transition-all active:scale-90 relative",
+                isActive ? "text-primary" : "text-muted-foreground"
               )}
             >
-              <item.icon className={cn("h-6 w-6", isActive && "stroke-[2.5px]")} />
-              <span className="text-[10px] uppercase tracking-wider font-bold">{item.label}</span>
+              <item.icon className={cn("h-6 w-6 transition-transform", isActive && "stroke-[2.5px] scale-110")} />
+              <span className={cn("text-[9px] uppercase tracking-wider font-black", isActive ? "opacity-100" : "opacity-60")}>
+                {item.label}
+              </span>
+              {isActive && (
+                <div className="absolute -top-1 w-1 h-1 rounded-full bg-primary animate-pulse" />
+              )}
             </Link>
           )
         })}

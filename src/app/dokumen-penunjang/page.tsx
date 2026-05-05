@@ -207,7 +207,7 @@ function DokumenContent() {
         };
         
         if (type === "daftar-hadir") {
-          pdfBlob = await generateDaftarHadirPDF(pdfData, userData?.logoBase64);
+          pdfBlob = await generateDaftarHadirPDF(fixedPdfData, userData?.logoBase64);
         } else {
           pdfBlob = await generateUangSakuPDF(pdfData, userData?.logoBase64);
         }
@@ -241,7 +241,40 @@ function DokumenContent() {
         }, userData?.logoBase64)
       }
       else if (type === "siltap") {
-        const dataToPrint = siltapSubType === "perangkat" ? (dbSiltap || []) : (dbBpd || []);
+        let dataToPrint = [];
+        
+        if (siltapSubType === "perangkat") {
+          // Data Siltap Perangkat diambil dari Database Profil (personnel) - Kategori Pemerintah Desa
+          dataToPrint = (dbOfficials || [])
+            .filter(o => o.category === "Pemerintah Desa")
+            .map(o => {
+              let nominal = 0;
+              const job = (o.jabatan || "").toUpperCase();
+              
+              if (job.includes("KEPALA DESA")) nominal = 4000000;
+              else if (job.includes("SEKRETARIS DESA")) nominal = 3000000;
+              else if (job.includes("KAUR KEUANGAN")) nominal = 2400000;
+              else if (job.includes("KAUR UMUM") || job.includes("KAUR UMUM ADD")) nominal = 2400000;
+              else if (job.includes("KASI PEMERINTAHAN")) nominal = 2400000;
+              else if (job.includes("KASI KESEJAHTERAAN")) nominal = 2400000;
+              else if (job.includes("KASI PELAYANAN")) nominal = 2400000;
+              else if (job.includes("KEPALA DUSUN")) nominal = 2200000;
+              else if (job.includes("STAF")) nominal = 2050000;
+              else nominal = 0;
+
+              return {
+                name: o.name,
+                jabatan: o.jabatan,
+                nominal: nominal
+              };
+            })
+            // Urutkan berdasarkan nominal tertinggi ke terendah
+            .sort((a, b) => b.nominal - a.nominal);
+        } else {
+          // Data Insentif BPD diambil dari Database BPD
+          dataToPrint = (dbBpd || []);
+        }
+
         pdfBlob = await generateSiltapPDF({ 
             month: insentifMonth, 
             date, 
@@ -788,9 +821,13 @@ function DokumenContent() {
 function DokumenSuspense() {
   return (
     <Suspense fallback={<div className="flex h-screen items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>}>
-      <DokumenContent />
+      <StatusChecker />
     </Suspense>
   )
+}
+
+function StatusChecker() {
+  return <DokumenContent />
 }
 
 export default function DokumenPenunjangPage() {

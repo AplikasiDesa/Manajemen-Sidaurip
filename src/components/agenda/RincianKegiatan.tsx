@@ -164,7 +164,7 @@ export function RincianKegiatan() {
           ) : searchEvents.length > 0 ? (
             searchEvents.map((event) => (
               <button 
-                key={event.id || (typeof event.start === "string" ? event.start : event.start.dateTime)}
+                key={event.id || event.start} 
                 onClick={() => handleSelectEvent(event)}
                 className={cn(
                   "w-full text-left p-4 rounded-2xl bg-white border shadow-sm transition-all hover:border-primary/60 hover:bg-primary/5",
