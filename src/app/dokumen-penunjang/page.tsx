@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useSearchParams } from "next/navigation"
@@ -53,13 +54,13 @@ function DokumenContent() {
   const [mounted, setMounted] = useState(false)
 
   // 1. Mengambil data personil dari Firestore
-  const personnelRef = useMemoFirebase(() => db ? collection(db, "personnel") : null, [db])
+  const personnelRef = useMemoFirebase(() => (db && user) ? collection(db, "personnel") : null, [db, user])
   const { data: dbOfficials } = useCollection(personnelRef)
   
-  const siltapRef = useMemoFirebase(() => db ? collection(db, "siltap") : null, [db])
+  const siltapRef = useMemoFirebase(() => (db && user) ? collection(db, "siltap") : null, [db, user])
   const { data: dbSiltap } = useCollection(siltapRef)
 
-  const bpdRef = useMemoFirebase(() => db ? collection(db, "bpd_insentif") : null, [db])
+  const bpdRef = useMemoFirebase(() => (db && user) ? collection(db, "bpd_insentif") : null, [db, user])
   const { data: dbBpd } = useCollection(bpdRef)
 
   const userDocRef = useMemoFirebase(() => {
@@ -207,9 +208,9 @@ function DokumenContent() {
         };
         
         if (type === "daftar-hadir") {
-          pdfBlob = await generateDaftarHadirPDF(pdfData as any, userData?.logoBase64);
+          pdfBlob = await generateDaftarHadirPDF(pdfData, userData?.logoBase64);
         } else {
-          pdfBlob = await generateUangSakuPDF(pdfData as any, userData?.logoBase64);
+          pdfBlob = await generateUangSakuPDF(pdfData, userData?.logoBase64);
         }
       } 
       else if (type === "honor-narasumber") {

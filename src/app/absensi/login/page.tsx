@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth, useUser } from "@/firebase"
+import { useAuth, useUser, useFirestore, useDoc, useMemoFirebase } from "@/firebase"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { LogIn, Loader2, KeyRound, User, ArrowLeft, UserCheck } from "lucide-react"
@@ -12,9 +12,10 @@ import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { signInWithEmailAndPassword, signOut } from "firebase/auth"
+import { signInWithEmailAndPassword } from "firebase/auth"
+import { doc } from "firebase/firestore"
 import Link from "next/link"
-import { INTERNAL_USERS } from "@/app/dev/create-user/page"
+import { INTERNAL_USERS } from "@/lib/internal-users"
 
 const loginSchema = z.object({
   username: z.string().min(3, "Username minimal 3 karakter."),
@@ -23,20 +24,33 @@ const loginSchema = z.object({
 
 export default function AbsensiLoginPage() {
   const { user, isUserLoading } = useUser()
+  const db = useFirestore()
   const auth = useAuth()
   const router = useRouter()
   const { toast } = useToast()
   const [isProcessing, setIsProcessing] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  const personelRef = useMemoFirebase(() => 
+    db && user ? doc(db, "personel", user.uid) : null, 
+  [db, user])
+  const { data: personelData, isLoading: isPersonelLoading } = useDoc(personelRef)
 
   useEffect(() => {
-    signOut(auth).catch(() => {})
-  }, [auth])
+    setMounted(true)
+  }, [])
 
+  // Efek ini hanya mengarahkan ke dashboard personal jika user yang login BUKAN admin
+  // Jika admin login di sini, biarkan tetap di halaman login agar bisa ganti akun
   useEffect(() => {
-    if (user && !isUserLoading) {
-      router.push("/absensi/dashboard/")
+    if (mounted && user && !isUserLoading && !isPersonelLoading) {
+      const isAdmin = user.email === "adminsidaurip@gmail.id" || personelData?.role === "admin_absensi" || personelData?.role === "admin";
+      
+      if (!isAdmin) {
+        router.push("/absensi/dashboard/")
+      }
     }
-  }, [user, isUserLoading, router])
+  }, [user, isUserLoading, personelData, isPersonelLoading, router, mounted])
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -47,21 +61,18 @@ export default function AbsensiLoginPage() {
     setIsProcessing(true)
     try {
       const cleanUsername = values.username.trim().toLowerCase()
-      
-      // MENCARI EMAIL DARI MAP INTERNAL (TANPA QUERY FIRESTORE)
       const internalUser = INTERNAL_USERS.find(u => u.username === cleanUsername)
 
       if (!internalUser) {
         throw new Error("Username '" + cleanUsername + "' tidak terdaftar di sistem.")
       }
 
-      if (internalUser.role !== "perangkat") {
-        throw new Error("Gunakan portal Admin untuk akses role '" + internalUser.role + "'.")
+      // Login personal tidak boleh masuk menggunakan akun admin di portal ini
+      if (internalUser.role === "admin" || internalUser.role === "admin_absensi") {
+        throw new Error("Akun Admin harus masuk melalui Portal Admin.")
       }
 
-      // LOGIN MENGGUNAKAN EMAIL YANG DITEMUKAN
       await signInWithEmailAndPassword(auth, internalUser.email, values.password)
-      
       toast({ title: "Berhasil Masuk", description: "Selamat datang, " + internalUser.username })
       router.push("/absensi/dashboard/")
     } catch (error: any) {
@@ -70,14 +81,19 @@ export default function AbsensiLoginPage() {
       if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
         message = "Kata sandi yang Anda masukkan salah."
       }
-      
       toast({ variant: "destructive", title: "Gagal Masuk", description: message })
     } finally {
       setIsProcessing(false)
     }
   }
 
-  if (isUserLoading) return <div className="flex h-screen items-center justify-center bg-slate-50"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+  if (!mounted || isUserLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-slate-50">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4 bg-slate-50">

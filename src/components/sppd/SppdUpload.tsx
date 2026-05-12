@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
@@ -65,7 +66,7 @@ export function SppdUpload({ onSuccess, initialData }: SppdUploadProps) {
   const { user } = useUser()
   const db = useFirestore()
   
-  const personnelRef = useMemoFirebase(() => db ? collection(db, "personnel") : null, [db])
+  const personnelRef = useMemoFirebase(() => (db && user) ? collection(db, "personnel") : null, [db, user])
   const { data: dbOfficials } = useCollection(personnelRef)
   
   const form = useForm<z.infer<typeof formSchema>>({

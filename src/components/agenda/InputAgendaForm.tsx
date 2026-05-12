@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useRef, useEffect } from "react"
@@ -18,7 +19,7 @@ import { GOOGLE_CONFIG } from "@/lib/google-config"
 import { callAppsScript } from "@/app/agenda/actions"
 import { format } from "date-fns"
 import { useUser, useDoc, useFirestore, useMemoFirebase, useCollection } from "@/firebase"
-import { doc, collection } from "firebase/firestore"
+import { collection, doc } from "firebase/firestore"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
 const formSchema = z.object({
@@ -50,7 +51,7 @@ export function InputAgendaForm() {
   const { user } = useUser()
   const db = useFirestore()
 
-  const personnelRef = useMemoFirebase(() => db ? collection(db, "personnel") : null, [db])
+  const personnelRef = useMemoFirebase(() => (db && user) ? collection(db, "personnel") : null, [db, user])
   const { data: dbOfficials, isLoading: isPersonnelLoading } = useCollection(personnelRef)
 
   const userDocRef = useMemoFirebase(() => {

@@ -1,8 +1,10 @@
+
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from "@/firebase"
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, useAuth } from "@/firebase"
 import { doc, collection, query, where, orderBy, limit, setDoc } from "firebase/firestore"
+import { signOut } from "firebase/auth"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -15,7 +17,8 @@ import {
   Calendar as CalendarIcon,
   Navigation,
   Timer,
-  RefreshCw
+  RefreshCw,
+  Clock
 } from "lucide-react"
 import { format } from "date-fns"
 import { id as localeID } from "date-fns/locale"
@@ -24,9 +27,12 @@ import { calculateDistance, isHoliday, isWorkDay, parseTime } from "@/lib/attend
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 
+const DAYS_MAP = ['minggu', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
+
 export default function AbsensiDashboard() {
   const { user, isUserLoading } = useUser()
   const db = useFirestore()
+  const auth = useAuth()
   const { toast } = useToast()
   const router = useRouter()
   
@@ -49,7 +55,7 @@ export default function AbsensiDashboard() {
     return () => clearInterval(timer)
   }, [])
 
-  // 3. Ambil Profil Personel (Wajib untuk validasi role)
+  // 3. Ambil Profil Personel
   const personelRef = useMemoFirebase(() => 
     db && user ? doc(db, "personel", user.uid) : null, 
   [db, user])
@@ -71,7 +77,6 @@ export default function AbsensiDashboard() {
   const { data: todayAbsen } = useDoc(todayAbsenRef)
 
   // 6. Riwayat Terakhir
-  // Menjamin query mengandung filter 'personel_id' agar tidak ditolak Rules
   const historyQuery = useMemoFirebase(() => {
     if (!db || !user || !personelData) return null
     
@@ -132,7 +137,12 @@ export default function AbsensiDashboard() {
     }
 
     setIsAbsenLoading(true)
-    const jamMasukSetting = parseTime(settings.jam_masuk)
+    
+    // Cari jadwal spesifik untuk hari ini
+    const todayDayName = DAYS_MAP[currentTime.getDay()];
+    const todaySchedule = settings.jadwal?.[todayDayName] || { masuk: settings.jam_masuk, pulang: settings.jam_pulang };
+    
+    const jamMasukSetting = parseTime(todaySchedule.masuk || "08:00")
     const toleransiSetting = settings.toleransi_telat || 0
     const limitMasuk = new Date(jamMasukSetting.getTime() + toleransiSetting * 60000)
     
@@ -172,6 +182,17 @@ export default function AbsensiDashboard() {
     }
   }
 
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      // Gunakan replace untuk memastikan history dibersihkan dan kembali ke landing page
+      router.replace("/");
+    } catch (error) {
+      console.error("Sign out error", error);
+      router.replace("/");
+    }
+  }
+
   if (isUserLoading || isPersonelLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-slate-50">
@@ -186,6 +207,10 @@ export default function AbsensiDashboard() {
   if (!user) return null
   const inRadius = distance !== null && distance <= (settings?.radius_lokasi || 100)
 
+  // Ambil jadwal hari ini untuk display UI
+  const todayDayName = DAYS_MAP[currentTime.getDay()];
+  const displaySchedule = settings?.jadwal?.[todayDayName] || { masuk: settings?.jam_masuk, pulang: settings?.jam_pulang };
+
   return (
     <div className="flex flex-col gap-6 p-4 md:p-8 max-w-2xl mx-auto pb-24">
       <header className="flex items-center justify-between">
@@ -198,7 +223,11 @@ export default function AbsensiDashboard() {
             <p className="text-xs text-muted-foreground font-bold uppercase">{personelData?.nama || "Perangkat Desa"}</p>
           </div>
         </div>
-        <button onClick={() => { router.push("/"); }} className="p-2 text-muted-foreground hover:text-primary transition-colors">
+        <button 
+          onClick={handleLogout} 
+          className="h-12 w-12 rounded-2xl bg-slate-100 flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all"
+          title="Keluar Portal"
+        >
           <LogOut className="h-5 w-5" />
         </button>
       </header>
@@ -208,9 +237,15 @@ export default function AbsensiDashboard() {
         <div className="relative z-10 space-y-4">
           <p className="text-xs font-black uppercase tracking-[0.2em] opacity-80">{format(currentTime, "EEEE, d MMMM yyyy", { locale: localeID })}</p>
           <h2 className="text-6xl font-black tracking-tighter">{format(currentTime, "HH:mm")}<span className="text-xl ml-2 opacity-60">{format(currentTime, "ss")}</span></h2>
-          <div className="flex items-center gap-3 bg-white/20 w-fit px-4 py-2 rounded-2xl backdrop-blur-md">
-            <MapPin className="h-4 w-4" />
-            <p className="text-[10px] font-bold uppercase">{location ? `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}` : "Mencari Lokasi..."}</p>
+          <div className="flex flex-wrap items-center gap-3 mt-2">
+            <div className="flex items-center gap-2 bg-white/20 px-3 py-1.5 rounded-xl backdrop-blur-md">
+              <MapPin className="h-3 w-3" />
+              <p className="text-[9px] font-bold uppercase">{location ? `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}` : "GPS OFF"}</p>
+            </div>
+            <div className="flex items-center gap-2 bg-white/20 px-3 py-1.5 rounded-xl backdrop-blur-md">
+              <Clock className="h-3 w-3" />
+              <p className="text-[9px] font-bold uppercase">JADWAL: {displaySchedule.masuk} - {displaySchedule.pulang}</p>
+            </div>
           </div>
         </div>
       </section>

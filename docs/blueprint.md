@@ -1,19 +1,18 @@
-# **App Name**: Sidaurip Digital
+# **App Name**: Kinerja Mobile
 
 ## Core Features:
 
-- Village Information Dashboard: Display key village statistics such as population, area, and family data. Summarize reports or letters into human-readable form using AI.
-- Letter Generation Service: Allow residents to request and generate official letters (e.g., residency certificates) through the app. An LLM-based tool helps determine required information for different letter types.
-- Resident Data Management: Enable village administrators to manage and update resident data, including family details, address, and other relevant information.
-- Complaint and Feedback System: Provide a platform for residents to submit complaints or feedback to the village administration. Use an LLM to summarize each complaint or piece of feedback.
-- Announcements and Notifications: Broadcast important announcements and notifications from the village administration to the residents.
+- Upload Kegiatan: Users can upload records of their work activities including relevant images and descriptions.
+- Upload SPPD: Users can upload official travel expense reports (SPPD) with details on expenses and approvals.
+- Document Organization: System for organizing and categorizing uploaded documents (Kegiatan and SPPD).
+- Search Functionality: Enable searching activities or SPPD records to quickly find records.
 
 ## Style Guidelines:
 
-- Primary color: Forest green (#388E3C) to evoke a sense of nature, growth, and community.
-- Background color: Light green (#E8F5E9), a desaturated shade of the primary, to create a calm and clean backdrop.
-- Accent color: Yellow-Green (#8BC34A) to add vibrancy and highlight important elements such as CTAs.
-- Body and headline font: 'PT Sans', a humanist sans-serif for a modern yet approachable feel.
-- Use clean, modern icons to represent different services and categories within the app.
-- Maintain a clean and organized layout with clear navigation to ensure ease of use for all residents.
-- Incorporate subtle animations to provide feedback and enhance user engagement.
+- Primary color: Deep sky blue (#3498DB), providing a professional and reliable feel.
+- Background color: Light gray (#ECF0F1), for a clean, non-distracting interface.
+- Accent color: Emerald green (#2ECC71), used to highlight key actions or successful submissions.
+- Font: 'Inter', a grotesque sans-serif font for a modern and neutral appearance suitable for both headers and body text.
+- Use simple and clear icons from a library like Material Design Icons to represent actions and categories within the app.
+- Design a tab-based layout to separate 'Upload Kegiatan' and 'Upload SPPD' sections, making navigation intuitive.
+- Implement subtle animations for transitions and loading states to enhance the user experience, such as a loading spinner when uploading documents.

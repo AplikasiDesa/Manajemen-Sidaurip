@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -34,7 +35,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import Link from "next/link"
 import { useState, useRef } from "react"
-import { useFirestore, useCollection, useMemoFirebase } from "@/firebase"
+import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
 import { collection, doc, deleteDoc, setDoc, addDoc, writeBatch, getDocs } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
 import * as XLSX from "xlsx"
@@ -55,11 +56,12 @@ const CATEGORIES = [
 
 export default function ProfilePage() {
   const db = useFirestore()
+  const { user } = useUser()
   const { toast } = useToast()
   const fileInputRef = useRef<HTMLInputElement>(null)
   
   // Membaca data personel dari Firestore
-  const personnelRef = useMemoFirebase(() => db ? collection(db, "personnel") : null, [db])
+  const personnelRef = useMemoFirebase(() => (db && user) ? collection(db, "personnel") : null, [db, user])
   const { data: officials, isLoading: isDataLoading } = useCollection(personnelRef)
 
   const [searchTerm, setSearchTerm] = useState("");
