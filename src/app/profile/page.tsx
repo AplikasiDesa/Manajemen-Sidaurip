@@ -1,4 +1,3 @@
-
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -14,8 +13,7 @@ import {
   Plus, 
   Upload, 
   Download,
-  AlertTriangle,
-  FileSpreadsheet
+  AlertTriangle
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -36,9 +34,15 @@ import {
 import Link from "next/link"
 import { useState, useRef } from "react"
 import { useFirestore, useCollection, useMemoFirebase, useUser } from "@/firebase"
-import { collection, doc, deleteDoc, setDoc, addDoc, writeBatch, getDocs } from "firebase/firestore"
+import { collection, doc, getDocs } from "firebase/firestore"
+import { 
+  addDocumentNonBlocking, 
+  deleteDocumentNonBlocking, 
+  setDocumentNonBlocking 
+} from "@/firebase/non-blocking-updates"
 import { useToast } from "@/hooks/use-toast"
 import * as XLSX from "xlsx"
+import { cn } from "@/lib/utils"
 
 const CATEGORIES = [
   "Pemerintah Desa", 
@@ -60,7 +64,6 @@ export default function ProfilePage() {
   const { toast } = useToast()
   const fileInputRef = useRef<HTMLInputElement>(null)
   
-  // Membaca data personel dari Firestore
   const personnelRef = useMemoFirebase(() => (db && user) ? collection(db, "personnel") : null, [db, user])
   const { data: officials, isLoading: isDataLoading } = useCollection(personnelRef)
 
@@ -68,7 +71,6 @@ export default function ProfilePage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [activeTab, setActiveTab] = useState("Pemerintah Desa");
 
-  // State Modals
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteSingleConfirmOpen, setIsDeleteSingleConfirmOpen] = useState(false);
@@ -84,83 +86,67 @@ export default function ProfilePage() {
     (o.jabatan?.toLowerCase() || '').includes(searchTerm.toLowerCase())
   );
 
-  // CREATE (Firestore)
-  const handleSaveAdd = async () => {
+  const handleSaveAdd = () => {
     if (!newName || !newJabatan || !db) return;
-    setIsProcessing(true);
-    try {
-        await addDoc(collection(db, "personnel"), {
-            name: newName.toUpperCase(),
-            jabatan: newJabatan.toUpperCase(),
-            category: activeTab,
-            active: true,
-            createdAt: new Date().toISOString()
-        });
-        toast({ title: "Berhasil", description: "Personel baru ditambahkan." });
-        setIsAddModalOpen(false);
-        setNewName(""); setNewJabatan("");
-    } catch (err: any) {
-        toast({ variant: "destructive", title: "Gagal", description: "Kesalahan perizinan atau koneksi." });
-    } finally {
-        setIsProcessing(false);
-    }
+    const colRef = collection(db, "personnel");
+    addDocumentNonBlocking(colRef, {
+        name: newName.toUpperCase().trim(),
+        jabatan: newJabatan.toUpperCase().trim(),
+        category: activeTab,
+        active: true,
+        createdAt: new Date().toISOString()
+    });
+    toast({ title: "Berhasil", description: "Personel baru ditambahkan." });
+    setIsAddModalOpen(false);
+    setNewName(""); setNewJabatan("");
   };
 
-  // UPDATE (Firestore)
-  const handleSaveEdit = async () => {
+  const handleSaveEdit = () => {
     if (!editingOfficial || !db) return;
-    setIsProcessing(true);
-    try {
-        const docRef = doc(db, "personnel", editingOfficial.id);
-        await setDoc(docRef, {
-            ...editingOfficial,
-            name: newName.toUpperCase(),
-            jabatan: newJabatan.toUpperCase(),
-        }, { merge: true });
-        toast({ title: "Berhasil", description: "Data diperbarui." });
-        setIsEditModalOpen(false);
-    } catch (err: any) {
-        toast({ variant: "destructive", title: "Gagal", description: "Kesalahan perizinan." });
-    } finally {
-        setIsProcessing(false);
-    }
+    const docRef = doc(db, "personnel", editingOfficial.id);
+    setDocumentNonBlocking(docRef, {
+        ...editingOfficial,
+        name: newName.toUpperCase().trim(),
+        jabatan: newJabatan.toUpperCase().trim(),
+    }, { merge: true });
+    toast({ title: "Berhasil", description: "Data diperbarui." });
+    setIsEditModalOpen(false);
   };
 
-  // DELETE (Firestore)
-  const handleConfirmDeleteSingle = async () => {
+  const handleConfirmDeleteSingle = () => {
     if (!deletingOfficial || !db) return;
-    setIsProcessing(true);
-    try {
-        await deleteDoc(doc(db, "personnel", deletingOfficial.id));
-        toast({ title: "Terhapus", description: "Data dihapus secara permanen." });
-        setIsDeleteSingleConfirmOpen(false);
-    } catch (err: any) {
-        toast({ variant: "destructive", title: "Gagal", description: "Hanya Admin yang dapat menghapus." });
-    } finally {
-        setIsProcessing(false);
-    }
+    const docRef = doc(db, "personnel", deletingOfficial.id);
+    deleteDocumentNonBlocking(docRef);
+    toast({ title: "Terhapus", description: "Data dihapus secara permanen." });
+    setIsDeleteSingleConfirmOpen(false);
   };
 
   const handleExport = () => {
     if (!officials || officials.length === 0) return;
-    const exportData = filteredOfficials.map(o => ({
-      'Nama': o.name,
-      'Jabatan': o.jabatan,
-      'Kategori': o.category
-    }));
+    const exportData = filteredOfficials
+      .filter(o => o.category === activeTab)
+      .map(o => ({
+        'Nama': o.name,
+        'Jabatan': o.jabatan
+      }));
+
+    if (exportData.length === 0) {
+      toast({ variant: "destructive", title: "Data Kosong", description: `Tidak ada data pada kategori ${activeTab} untuk diekspor.` });
+      return;
+    }
+
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Personel Desa");
-    XLSX.writeFile(wb, "Data_Personel_Sidaurip.xlsx");
+    XLSX.utils.book_append_sheet(wb, ws, "Data Personel");
+    XLSX.writeFile(wb, `Data_Personel_${activeTab.replace(/\s+/g, '_')}_Sidaurip.xlsx`);
   }
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !db) return;
+    if (!file || !db || !user) return;
 
     const reader = new FileReader();
-    reader.onload = async (event) => {
-      setIsProcessing(true);
+    reader.onload = (event) => {
       try {
         const bstr = event.target?.result;
         const wb = XLSX.read(bstr, { type: 'binary' });
@@ -168,31 +154,47 @@ export default function ProfilePage() {
         const ws = wb.Sheets[wsname];
         const jsonData: any[] = XLSX.utils.sheet_to_json(ws);
         
-        const batch = writeBatch(db);
+        if (jsonData.length === 0) {
+          toast({ variant: "destructive", title: "File Kosong", description: "Tidak ada data yang ditemukan di file Excel." });
+          return;
+        }
+
+        let importedCount = 0;
         jsonData.forEach((row) => {
-          const name = row['Nama'] || row['nama'];
-          const jabatan = row['Jabatan'] || row['jabatan'];
-          const category = row['Kategori'] || row['kategori'] || activeTab;
+          // Cari kunci yang mengandung 'nama' dan 'jabatan' tanpa peduli case/spasi
+          const keys = Object.keys(row);
+          const nameKey = keys.find(k => k.toLowerCase().replace(/\s/g, '') === 'nama');
+          const jobKey = keys.find(k => k.toLowerCase().replace(/\s/g, '') === 'jabatan');
+
+          const nameValue = nameKey ? row[nameKey] : null;
+          const jobValue = jobKey ? row[jobKey] : null;
           
-          if (name && jabatan) {
-            const newDocRef = doc(collection(db, "personnel"));
-            batch.set(newDocRef, {
-              name: String(name).toUpperCase(),
-              jabatan: String(jabatan).toUpperCase(),
-              category: category,
+          if (nameValue && jobValue) {
+            const colRef = collection(db, "personnel");
+            addDocumentNonBlocking(colRef, {
+              name: String(nameValue).toUpperCase().trim(),
+              jabatan: String(jobValue).toUpperCase().trim(),
+              category: activeTab,
               active: true,
               createdAt: new Date().toISOString()
             });
+            importedCount++;
           }
         });
 
-        await batch.commit();
-        toast({ title: "Impor Berhasil", description: `${jsonData.length} data berhasil ditambahkan.` });
+        if (importedCount > 0) {
+          toast({ title: "Impor Berhasil", description: `${importedCount} data personel sedang diproses ke database.` });
+        } else {
+          toast({ 
+            variant: "destructive", 
+            title: "Format Salah", 
+            description: "Pastikan kolom Excel bernama 'Nama' dan 'Jabatan'." 
+          });
+        }
       } catch (error) {
         console.error("Import error:", error);
-        toast({ variant: "destructive", title: "Impor Gagal", description: "Format file tidak sesuai." });
+        toast({ variant: "destructive", title: "Impor Gagal", description: "Terjadi kesalahan saat membaca file." });
       } finally {
-        setIsProcessing(false);
         if(fileInputRef.current) fileInputRef.current.value = "";
       }
     };
@@ -205,15 +207,13 @@ export default function ProfilePage() {
     try {
       const q = collection(db, "personnel");
       const snapshot = await getDocs(q);
-      const batch = writeBatch(db);
-      snapshot.docs.forEach((doc) => {
-        batch.delete(doc.ref);
+      snapshot.docs.forEach((docSnap) => {
+        deleteDocumentNonBlocking(docSnap.ref);
       });
-      await batch.commit();
-      toast({ title: "Berhasil", description: "Seluruh data personel telah dihapus." });
+      toast({ title: "Berhasil", description: "Proses penghapusan database dimulai." });
       setShowDeleteAllConfirm(false);
     } catch (e) {
-      toast({ variant: "destructive", title: "Gagal", description: "Hanya Admin yang diizinkan." });
+      toast({ variant: "destructive", title: "Gagal", description: "Terjadi kesalahan akses." });
     } finally {
       setIsProcessing(false);
     }
@@ -243,15 +243,8 @@ export default function ProfilePage() {
             </div>
           </div>
           <div className="flex items-center gap-2 self-end sm:self-center">
-            <input type="file" ref={fileInputRef} onChange={handleImport} className="hidden" accept=".xlsx, .xls" />
-            <Button variant="outline" size="sm" className="h-9 rounded-xl gap-2 font-bold text-[10px] uppercase" onClick={() => fileInputRef.current?.click()} disabled={isProcessing}>
-                <Upload className="h-3.5 w-3.5" /> Impor
-            </Button>
-            <Button variant="outline" size="sm" className="h-9 rounded-xl gap-2 font-bold text-[10px] uppercase" onClick={handleExport}>
-                <Download className="h-3.5 w-3.5" /> Ekspor
-            </Button>
-            <Button variant="destructive" size="sm" className="h-9 rounded-xl gap-2 font-bold text-[10px] uppercase" onClick={() => setShowDeleteAllConfirm(true)} disabled={isProcessing}>
-                <Trash2 className="h-3.5 w-3.5" /> Hapus Semua
+            <Button variant="ghost" size="sm" className="h-9 rounded-xl gap-2 font-bold text-[10px] uppercase text-destructive hover:bg-destructive/5" onClick={() => setShowDeleteAllConfirm(true)} disabled={isProcessing}>
+                <Trash2 className="h-3.5 w-3.5" /> Hapus Seluruh Database
             </Button>
           </div>
       </header>
@@ -270,26 +263,46 @@ export default function ProfilePage() {
         <Tabs defaultValue="Pemerintah Desa" className="w-full" onValueChange={setActiveTab}>
             <TabsList className="w-full h-auto p-1.5 bg-muted/50 flex flex-row overflow-x-auto no-scrollbar md:flex-wrap rounded-2xl">
                 {CATEGORIES.map((cat) => (
-                <TabsTrigger key={cat} value={cat} className="flex-shrink-0 px-5 py-3 text-[10px] font-black uppercase md:flex-1 md:min-w-[120px] rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white">
+                <TabsTrigger key={cat} value={cat} className="flex-shrink-0 px-5 py-3 text-[10px] font-black uppercase md:flex-1 md:min-w-[120px] rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white transition-all">
                     {cat}
                 </TabsTrigger>
                 ))}
             </TabsList>
 
           {CATEGORIES.map((cat) => (
-            <TabsContent key={cat} value={cat} className="mt-6 space-y-4 animate-in fade-in slide-in-from-bottom-2">
-                <div className="flex justify-between items-center px-1">
-                    <h3 className="text-sm font-black uppercase text-slate-800">{cat}</h3>
-                    <Button 
-                        onClick={() => {
-                            setNewName(""); setNewJabatan("");
-                            setIsAddModalOpen(true);
-                        }}
-                        className="h-10 gap-2 text-[10px] font-black uppercase bg-primary shadow-lg rounded-xl"
-                    >
-                        <Plus className="h-4 w-4"/>
-                        Tambah {cat}
-                    </Button>
+            <TabsContent key={cat} value={cat} className="mt-8 space-y-6 animate-in fade-in slide-in-from-bottom-2">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 px-1">
+                    <h3 className="text-lg font-black uppercase text-slate-800 tracking-tight">{cat}</h3>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <input type="file" ref={fileInputRef} onChange={handleImport} className="hidden" accept=".xlsx, .xls" />
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => fileInputRef.current?.click()} 
+                            disabled={isProcessing}
+                            className="h-10 rounded-xl gap-2 font-black text-[10px] uppercase border-slate-200 hover:bg-slate-50 shadow-sm"
+                        >
+                            <Upload className="h-3.5 w-3.5" /> Impor
+                        </Button>
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={handleExport}
+                            className="h-10 rounded-xl gap-2 font-black text-[10px] uppercase border-slate-200 hover:bg-slate-50 shadow-sm"
+                        >
+                            <Download className="h-3.5 w-3.5" /> Ekspor
+                        </Button>
+                        <Button 
+                            onClick={() => {
+                                setNewName(""); setNewJabatan("");
+                                setIsAddModalOpen(true);
+                            }}
+                            className="h-10 gap-2 text-[10px] font-black uppercase bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 rounded-xl px-5"
+                        >
+                            <Plus className="h-4 w-4"/>
+                            Tambah {cat}
+                        </Button>
+                    </div>
                 </div>
 
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -335,8 +348,8 @@ export default function ProfilePage() {
                     </Card>
                   ))}
                 {filteredOfficials.filter(o => o.category === cat).length === 0 && (
-                  <div className="col-span-full py-20 text-center border-2 border-dashed rounded-[2rem] text-muted-foreground border-primary/10">
-                    <p className="font-bold text-[10px] uppercase tracking-widest">Belum ada data di kategori {cat}</p>
+                  <div className="col-span-full py-24 text-center border-2 border-dashed rounded-[2.5rem] text-muted-foreground border-slate-100 bg-slate-50/30">
+                    <p className="font-bold text-[10px] uppercase tracking-[0.2em] text-slate-400">Belum ada data di kategori {cat}</p>
                   </div>
                 )}
               </div>
@@ -363,8 +376,8 @@ export default function ProfilePage() {
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={handleSaveAdd} disabled={isProcessing || !newName || !newJabatan} className="w-full h-14 rounded-2xl font-black uppercase shadow-lg shadow-primary/20">
-              {isProcessing ? <Loader2 className="animate-spin h-5 w-5" /> : "Simpan Personel"}
+            <Button onClick={handleSaveAdd} disabled={!newName || !newJabatan} className="w-full h-14 rounded-2xl font-black uppercase shadow-lg shadow-primary/20">
+              Simpan Personel
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -385,8 +398,8 @@ export default function ProfilePage() {
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={handleSaveEdit} disabled={isProcessing} className="w-full h-14 rounded-2xl font-black uppercase shadow-lg shadow-primary/20">
-               {isProcessing ? <Loader2 className="animate-spin h-5 w-5" /> : "Perbarui Data"}
+            <Button onClick={handleSaveEdit} className="w-full h-14 rounded-2xl font-black uppercase shadow-lg shadow-primary/20">
+               Perbarui Data
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -405,8 +418,8 @@ export default function ProfilePage() {
             <p className="text-xs font-bold uppercase text-slate-500 leading-relaxed">Hapus <strong>{deletingOfficial?.name}</strong> dari database secara permanen?</p>
           </div>
           <DialogFooter className="flex-col gap-2">
-            <Button variant="destructive" onClick={handleConfirmDeleteSingle} disabled={isProcessing} className="w-full h-12 rounded-2xl font-black uppercase shadow-lg shadow-destructive/20">
-                {isProcessing ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : "Ya, Hapus Data"}
+            <Button variant="destructive" onClick={handleConfirmDeleteSingle} className="w-full h-12 rounded-2xl font-black uppercase shadow-lg shadow-destructive/20">
+                Ya, Hapus Data
             </Button>
             <Button variant="ghost" onClick={() => setIsDeleteSingleConfirmOpen(false)} className="w-full h-12 rounded-2xl font-bold uppercase">Batal</Button>
           </DialogFooter>
