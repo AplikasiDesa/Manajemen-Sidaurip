@@ -364,7 +364,7 @@ export default function DataKesehatanPage() {
               <Input 
                 value={formData.posyandu} 
                 onChange={(e) => setFormData(p => ({ ...p, posyandu: e.target.value }))} 
-                placeholder="CONTOH: LESTARI 3" 
+                placeholder="CONTOH: MAWAR 3" 
                 className="h-12 rounded-xl uppercase" 
               />
             </div>

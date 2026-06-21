@@ -147,7 +147,7 @@ const getRtRwWeight = (jabatan: string) => {
 
 const getKaderWeight = (jabatan: string) => {
   const j = jabatan.toUpperCase();
-  const match = j.match(/(?:LESTARI|RAHAYU)\s*(\d+)/i) || j.match(/(\d+)/);
+  const match = j.match(/(?:MAWAR|RAHAYU)\s*(\d+)/i) || j.match(/(\d+)/);
   return match ? parseInt(match[1]) : 999;
 };
 
@@ -233,7 +233,7 @@ function DokumenContent() {
   const [siltapSubType, setSiltapSubType] = useState<"perangkat" | "bpd">("perangkat")
 
   // Posyandu States
-  const [selectedLestari, setSelectedLestari] = useState("")
+  const [selectedMawar, setSelectedMawar] = useState("")
   const [selectedHealthCategory, setSelectedHealthCategory] = useState("Balita")
 
   // Fetch actual health records data based on selection
@@ -241,11 +241,11 @@ function DokumenContent() {
     if (!db || !user || type !== "daftar-hadir-posyandu" || posyanduSubType !== "peserta" || !selectedHealthCategory) return null;
     
     const colRef = collection(db, "health_records");
-    if (selectedLestari && selectedLestari !== "SEMUA POSYANDU") {
-      return query(colRef, where("category", "==", selectedHealthCategory), where("posyandu", "==", selectedLestari));
+    if (selectedMawar && selectedMawar !== "SEMUA POSYANDU") {
+      return query(colRef, where("category", "==", selectedHealthCategory), where("posyandu", "==", selectedMawar));
     }
     return query(colRef, where("category", "==", selectedHealthCategory));
-  }, [db, user, type, posyanduSubType, selectedHealthCategory, selectedLestari]);
+  }, [db, user, type, posyanduSubType, selectedHealthCategory, selectedMawar]);
   const { data: healthRecords } = useCollection(healthDataQuery);
 
   useEffect(() => {
@@ -258,14 +258,14 @@ function DokumenContent() {
     }
   }, [type])
 
-  const LestariGroups = useMemo(() => {
+  const MawarGroups = useMemo(() => {
     if (!dbOfficials) return [];
     const kaders = dbOfficials.filter(o => o.category === "Kader");
     const groups = new Set<string>();
     kaders.forEach(k => {
-      const match = k.jabatan?.match(/Lestari\s+\d+/i);
+      const match = k.jabatan?.match(/Mawar\s+\d+/i);
       if (match) groups.add(match[0].toUpperCase());
-      else if (k.jabatan?.toUpperCase().includes("Lestari")) {
+      else if (k.jabatan?.toUpperCase().includes("Mawar")) {
           groups.add(k.jabatan.toUpperCase().trim());
       }
     });
@@ -347,14 +347,14 @@ function DokumenContent() {
       } 
       else if (type === "daftar-hadir-posyandu") {
         if (!finalTitle) throw new Error("Judul kegiatan harus diisi")
-        if (!selectedLestari) throw new Error("Pilih Kelompok Posyandu")
+        if (!selectedMawar) throw new Error("Pilih Kelompok Posyandu")
         
-        const isAll = selectedLestari === "SEMUA POSYANDU";
-        const displayLestari = isAll ? "LESTARI" : selectedLestari;
-        const reportTitle = isAll ? "DAFTAR HADIR POSYANDU LESTARI" : `DAFTAR HADIR POSYANDU ${displayLestari}`;
+        const isAll = selectedMawar === "SEMUA POSYANDU";
+        const displayMawar = isAll ? "MAWAR" : selectedMawar;
+        const reportTitle = isAll ? "DAFTAR HADIR POSYANDU MAWAR" : `DAFTAR HADIR POSYANDU ${displayMawar}`;
 
         if (posyanduSubType === "kader") {
-            const kaders = (dbOfficials || []).filter(o => o.category === "Kader" && (isAll || o.jabatan?.toUpperCase().includes(selectedLestari)));
+            const kaders = (dbOfficials || []).filter(o => o.category === "Kader" && (isAll || o.jabatan?.toUpperCase().includes(selectedMawar)));
             const quota = Math.max(kaders.length, 10); 
             const sortedKaders = sortParticipants(kaders);
             const finalParticipants = Array.from({ length: quota }, (_, i) => 
@@ -381,7 +381,7 @@ function DokumenContent() {
                 tanggal: date,
                 participants: mappedParticipants,
                 quota: Math.max(mappedParticipants.length, jumlahKuotaPeserta),
-                mainTitle: isAll ? `DAFTAR HADIR ${selectedHealthCategory.toUpperCase()} POSYANDU LESTARI` : `DAFTAR HADIR ${selectedHealthCategory.toUpperCase()} POSYANDU ${displayLestari}`,
+                mainTitle: isAll ? `DAFTAR HADIR ${selectedHealthCategory.toUpperCase()} POSYANDU MAWAR` : `DAFTAR HADIR ${selectedHealthCategory.toUpperCase()} POSYANDU ${displayMawar}`,
                 location,
                 time
             };
@@ -712,12 +712,12 @@ function DokumenContent() {
                         </div>
                         <div className="space-y-2">
                             <Label className="text-[10px] font-black uppercase text-rose-600 tracking-widest ml-1">Pilih Kelompok Posyandu</Label>
-                            <Select value={selectedLestari} onValueChange={setSelectedLestari}>
+                            <Select value={selectedMawar} onValueChange={setSelectedMawar}>
                                 <SelectTrigger className="h-14 rounded-2xl bg-rose-50 border-rose-100 font-black">
                                     <SelectValue placeholder="Pilih Posyandu..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {LestariGroups.map(group => (
+                                    {MawarGroups.map(group => (
                                         <SelectItem key={group} value={group} className="font-bold">{group}</SelectItem>
                                     ))}
                                 </SelectContent>
